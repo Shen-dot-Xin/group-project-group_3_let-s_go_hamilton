@@ -1,6 +1,6 @@
 # GR5069-GroupProject-Spring2021
 
-### [Project Description](doc/project4_desc.md)
+### [Project Description](GR5069-GroupProject.pdf)
 
 Term: Spring 2021
 
