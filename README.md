@@ -26,7 +26,7 @@ Pruthvi Panati:
 	├── data
 	├── features
 	├── models
-	├── vizualizations
+	├── visualizations
 ├── reports/
 	├── documents
 	├── figures
