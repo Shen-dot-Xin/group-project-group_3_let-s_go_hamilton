@@ -21,6 +21,7 @@ Yixuan Li:
 
 Pruthvi Panati:
 
+### Repo Map
 ```
 ├── src/
 	├── data
@@ -35,3 +36,17 @@ Pruthvi Panati:
 ```
 
 Please see each subfolder for a README file.
+
+
+
+
+### Approach to Solution
+
+**Question 1 & 2** 
+
+We decided to choose following features and train a random forest model.
+
+**Features**
+
+- Driver Grid Position
+- Driver Race Position
