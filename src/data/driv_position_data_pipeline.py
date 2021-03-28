@@ -5,7 +5,6 @@ from pyspark.sql.functions import datediff, current_date, avg, col, round, upper
 import pyspark.sql.functions as psf
 from pyspark.sql.types import IntegerType
 import numpy as np
-from pandas_profiling import ProfileReport
 import matplotlib as mp
 
 # COMMAND ----------
