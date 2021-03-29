@@ -50,3 +50,14 @@ We decided to choose following features and train a random forest model.
 
 - Driver Grid Position
 - Driver Race Position
+
+**Question 3 & 4**
+
+We want to experiment with a number of models: logistic regression, random forest, etc.
+
+**Features**
+
+- Last season constructor's performance
+- Car retirement rate
+- Driver Pairing
+
