@@ -51,7 +51,7 @@ driver_race_results= driver_race_results.sort(driver_race_results.raceId.desc(),
 # COMMAND ----------
 
 # Writing this data to S3 bucket
-driver_race_results.write.csv('s3://pp-gr5069/processed/driver_race_results.csv')
+driver_race_results.write.csv('s3://group3-gr5069/processed/driver_race_results.csv')
 
 # COMMAND ----------
 
@@ -68,4 +68,7 @@ driver_race_results_info= driver_race_results_info.sort(driver_race_results_info
 # COMMAND ----------
 
 # Writing this data to S3 bucket
-driver_race_results_info.write.csv('s3://pp-gr5069/processed/driver_race_results_info.csv')
+driver_race_results_info.write.csv('s3://group3-gr5069/processed/driver_race_results_exp.csv')
+
+# COMMAND ----------
+
