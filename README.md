@@ -57,7 +57,7 @@ We want to experiment with a number of models: logistic regression, random fores
 
 **Features**
 
-- Last season constructor's performance
-- Car retirement rate
-- Driver Pairing
+- Last 3 seasons constructor's performance -- average points earned each races in last 3 seasons
+- The frequency of car mechanical failure in the last season -- identifing why drivers did not finish the race
+- Wins or loss at each grand pixes in the last season 
 
