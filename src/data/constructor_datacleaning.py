@@ -21,17 +21,17 @@
 
 # COMMAND ----------
 
+dbutils.library.installPyPI("seaborn", "0.11.0")
+dbutils.library.installPyPI("plotly", "4.14.3")
+
+# COMMAND ----------
+
 import boto3
 import pandas as pd
 import numpy as np
 
 import seaborn as sns
 import plotly.express as px
-
-# COMMAND ----------
-
-dbutils.library.installPyPI("seaborn", "0.11.0")
-dbutils.library.installPyPI("plotly", "4.14.3")
 
 # COMMAND ----------
 
@@ -63,8 +63,30 @@ df.head()
 
 # COMMAND ----------
 
+# MAGIC %md #### Results by races
+
+# COMMAND ----------
+
 # how many races did the constructors win?
 px.histogram(df[df['wins'] ==1], x = 'constructorRef')
+
+# COMMAND ----------
+
+# results
+c = "raw/races.csv"
+
+obj = s3.get_object(Bucket= bucket, Key= c)
+df_race = pd.read_csv(obj['Body'])
+df_race
+
+# COMMAND ----------
+
+# number of race each circuit has held
+px.histogram(df_race, x = 'name')
+
+# COMMAND ----------
+
+# MAGIC %md #### Championship
 
 # COMMAND ----------
 
@@ -117,13 +139,6 @@ df_s = pd.read_csv(obj['Body'])
 
 # COMMAND ----------
 
-# why drivers did not finish their race?
-df_p = df_r[['raceId', 'statusId']].merge(df_s, how = 'left', on = 'statusId')
-df_p = df_p[~df_p['status'].str.contains('Lap')]
-px.histogram(df_p[df_p['status'] != 'Finished'], x = 'status')
-
-# COMMAND ----------
-
 # result
 c = "raw/results.csv"
 
@@ -133,17 +148,48 @@ df_r
 
 # COMMAND ----------
 
-# result
-c = "raw/races.csv"
-
-obj = s3.get_object(Bucket= bucket, Key= c)
-df_race = pd.read_csv(obj['Body'])
-df_race
+# why drivers did not finish their race?
+df_p = df_r[['raceId', 'statusId']].merge(df_s, how = 'left', on = 'statusId')
+df_p = df_p[~df_p['status'].str.contains('Lap')]
+px.histogram(df_p[df_p['status'] != 'Finished'], x = 'status')
 
 # COMMAND ----------
 
-# number of race each circuit has held
-px.histogram(df_race, x = 'name')
+#add year，delete year = 2021
+df_y = df_race[['raceId','year']].merge(df_r, how = 'left', on = 'raceId')
+df_y = df_y[~df_y['year'].isin([2021])]
+df_y
+
+# COMMAND ----------
+
+# status classification
+c = "raw/status.csv"
+
+obj = s3.get_object(Bucket= bucket, Key= c)
+df_status = pd.read_csv(obj['Body'])
+display(df_status)
+
+# COMMAND ----------
+
+# MAGIC %md #### Engine problems
+
+# COMMAND ----------
+
+# The frequency of car breakdown (statusId = 5) for each constructor by seasons
+df_b = df_y[df_y['statusId'].isin([5])]
+df_b
+
+# COMMAND ----------
+
+df_b = df_b.groupby(['year','constructorId']).statusId.value_counts()
+df_b = df_b.reset_index(name='engineproblem')
+display(df_b)
+
+# COMMAND ----------
+
+df_car = df_b[['year','constructorId','engineproblem']].merge(df_y, how='outer', on=['constructorId', 'year'])
+df_car['engineproblem'] = df_car['engineproblem'].replace(np.nan, 0)
+df_car
 
 # COMMAND ----------
 
