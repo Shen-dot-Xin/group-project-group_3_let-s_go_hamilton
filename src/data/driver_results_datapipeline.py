@@ -33,12 +33,17 @@ driver_standings = spark.read.csv('s3://columbia-gr5069-main/raw/driver_standing
 
 df_driver_standings = driver_standings.select(col("raceId"),col("driverId"), col("position").alias("driverStPosition"), col("points").alias("driverSeasonPoints"), col("wins").alias("driverSeasonWins"))
 
+#Reading Constructor Standings data and selecting only required columns
+const_standings = spark.read.csv('s3://columbia-gr5069-main/raw/constructor_standings.csv', header=True, inferSchema=True)
+
+df_const_standings = const_standings.select(col("constructorId"),col("raceId"), col("position").alias("constStPosition"), col("points").alias("constSeasonPoints"), col("wins").alias("constSeasonWins"))
 
 # COMMAND ----------
 
 # DBTITLE 1,Driver-Race Data- Data to be used for Modeling
 #Joining Results and Driver table 
 driver_race_results= df_results.join(df_driver_standings, on=['raceId', 'driverId'])
+driver_race_results= driver_race_results.join(df_const_standings, on=['raceId', 'constructorId'])
 
 # Replacing the /N newline values with NA in this table
 driver_race_results =driver_race_results.select("*").toPandas()
@@ -51,7 +56,7 @@ driver_race_results= driver_race_results.sort(driver_race_results.raceId.desc(),
 # COMMAND ----------
 
 # Writing this data to S3 bucket
-driver_race_results.write.csv('s3://group3-gr5069/processed/driver_race_results.csv')
+driver_race_results.write.csv('s3://pp-gr5069/processed/driver_race_results.csv',mode="overwrite")
 
 # COMMAND ----------
 
@@ -60,7 +65,7 @@ driver_race_results.write.csv('s3://group3-gr5069/processed/driver_race_results.
 driver_race_results_info= driver_race_results.join(drivers.select(col("driverId"), concat(drivers.forename,drivers.surname).alias("driverName"), col("nationality").alias("driverNat")), on=['driverId']).join(constructors.select(col("constructorId"),col("name").alias("constructorName"),col("nationality").alias("constructorNat")), on=['constructorId']).join(races.select(col("raceId"), col("name").alias("raceName"),col("date").alias("raceDate"),col("round").alias("raceRound")), on=['raceId'])
 
 # Rearranging and dropping few columns to make it readable in one view
-driver_race_results_info = driver_race_results_info.select("raceId","raceName", "raceDate", "raceRound","driverName","driverNat", "constructorName", "gridPosition", "finishPosition", "positionOrder","driverRacePoints","raceLaps","raceDuration","fastestLap","fastestLapRank","fastestLapTime", "fastestLapSpeed","driverStPosition", "driverSeasonPoints", "driverSeasonWins")
+driver_race_results_info = driver_race_results_info.select("raceId","raceName", "raceDate", "raceRound","driverName","driverNat", "constructorName", "gridPosition", "finishPosition", "positionOrder","driverRacePoints","raceLaps","raceDuration","fastestLap","fastestLapRank","fastestLapTime", "fastestLapSpeed","driverStPosition", "driverSeasonPoints", "driverSeasonWins","constStPosition", "constSeasonPoints", "constSeasonWins")
 
 # Sorting the table to have recent races at the top
 driver_race_results_info= driver_race_results_info.sort(driver_race_results_info.raceId.desc(), driver_race_results.positionOrder)
@@ -68,7 +73,4 @@ driver_race_results_info= driver_race_results_info.sort(driver_race_results_info
 # COMMAND ----------
 
 # Writing this data to S3 bucket
-driver_race_results_info.write.csv('s3://group3-gr5069/processed/driver_race_results_exp.csv')
-
-# COMMAND ----------
-
+driver_race_results_info.write.csv('s3://pp-gr5069/processed/driver_race_results_exp.csv',mode="overwrite")
