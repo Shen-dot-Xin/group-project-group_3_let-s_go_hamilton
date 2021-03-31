@@ -1,4 +1,8 @@
 # Databricks notebook source
+
+
+# COMMAND ----------
+
 # MAGIC %md
 # MAGIC 
 # MAGIC This notebook cleans the datasets related to the f1 constructor success prediction.
@@ -13,11 +17,11 @@
 # MAGIC  
 # MAGIC  
 # MAGIC  Processing: 
-# MAGIC  - Drivers pairing strength: the stronger the pair of drivers, the more the points the constructors win.
+# MAGIC  - Engine Problems: Shows the reliability of the constructors' cars, especially focusing on the engine.
+# MAGIC  - Drivers performance: the stronger the overall perfomance of drivers in the last season, the more the points the constructors win.
 # MAGIC    - pre-race average driver standing: the smaller, the better. problem: what if a driver does not enter the last race?
 # MAGIC    - 
-# MAGIC  - Historical performance: the better the constructor was doing in the last season, the better this season???
-# MAGIC  - Car Retirement: Shows the reliability of the constructors' cars.
+# MAGIC  
 
 # COMMAND ----------
 
@@ -187,9 +191,30 @@ display(df_b)
 
 # COMMAND ----------
 
+# engine problems
 df_car = df_b[['year','constructorId','engineproblem']].merge(df_y, how='outer', on=['constructorId', 'year'])
 df_car['engineproblem'] = df_car['engineproblem'].replace(np.nan, 0)
 df_car
+
+# COMMAND ----------
+
+# MAGIC %md #### Driver selection
+
+# COMMAND ----------
+
+# average points in this season
+df_points = df_car.groupby(['year','constructorId']).points.mean()
+df_points = df_points.reset_index(name='avgpoints_c')
+df_points.loc[:, 'participation'] = 1
+df_points
+
+# COMMAND ----------
+
+#driver selection
+df_per = df_points[['year','constructorId','avgpoints_c','participation']].merge(df_car, how='outer', on=['constructorId', 'year'])
+df_per['participation'] = df_per['participation'].replace(np.nan, 0)
+df_per['avgpoints_c'] = df_per['avgpoints_c'].replace(np.nan, 0)
+df_per
 
 # COMMAND ----------
 
