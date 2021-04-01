@@ -46,6 +46,8 @@ Please see each subfolder for a README file.
 
 We decided to choose following features and train a random forest model.
 
+$Y = \beta_0+ \beta_1 X$ 
+
 **Features**
 
 - Driver Grid Position
