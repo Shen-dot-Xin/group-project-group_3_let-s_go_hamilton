@@ -42,18 +42,14 @@ Please see each subfolder for a README file.
 
 ### Approach to Solution
 
-**Question 1 & 2** 
+#### **Question 1** 
 
-We decided to choose following features and train a random forest model.
 
-$Y = \beta_0+ \beta_1 X$ 
 
-**Features**
+#### **Question 2** 
 
-- Driver Grid Position
-- Driver Race Position
 
-**Question 3 & 4**
+#### **Question 3 & 4**
 
 We want to experiment with a number of models: logistic regression, random forest, etc.
 
