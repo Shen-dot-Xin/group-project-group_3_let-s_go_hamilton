@@ -5,22 +5,21 @@
 
 # MAGIC %md
 # MAGIC 
-# MAGIC This notebook cleans the datasets related to the f1 constructor success prediction.
+# MAGIC This notebook cleans the datasets related to the f1 constructor championship prediction.
 # MAGIC 
 # MAGIC The datasets are: 
 # MAGIC  - constructors.csv
 # MAGIC  - constructor_standings.csv
 # MAGIC  - constructor_results.csv
+# MAGIC  - races.csv
+# MAGIC  - results.csv
+# MAGIC  - status.csv
 # MAGIC  
 # MAGIC  
-# MAGIC  Problem: by race or by season???
-# MAGIC  
-# MAGIC  
-# MAGIC  Processing: 
+# MAGIC  The following features are engineered: 
 # MAGIC  - Engine Problems: Shows the reliability of the constructors' cars, especially focusing on the engine.
 # MAGIC  - Drivers performance: the stronger the overall perfomance of drivers in the last season, the more the points the constructors win.
-# MAGIC    - pre-race average driver standing: the smaller, the better. problem: what if a driver does not enter the last race?
-# MAGIC    - 
+# MAGIC  - Constructor's consistency
 # MAGIC  
 
 # COMMAND ----------
@@ -44,7 +43,12 @@ bucket = "columbia-gr5069-main"
 
 # COMMAND ----------
 
-# constructors
+# MAGIC %md 
+# MAGIC ## Exploratory Data Analysis and Visualization
+
+# COMMAND ----------
+
+# reading constructors.csv
 c = "raw/constructors.csv"
 
 obj = s3.get_object(Bucket= bucket, Key= c)
@@ -53,7 +57,7 @@ df_constructors.head() # raceId, driverId, position(qualifying)
 
 # COMMAND ----------
 
-# constructor standings
+# reading constructor_standings.csv
 c = "raw/constructor_standings.csv"
 
 obj = s3.get_object(Bucket= bucket, Key= c)
@@ -62,8 +66,14 @@ df_cs.head()
 
 # COMMAND ----------
 
-df = df_cs.merge(df_constructors[['constructorId', 'constructorRef']], how = 'left', on = 'constructorId')
-df.head()
+# Append constructor reference name to the constructor standings dataframe, for the purpose of visualization
+df_cs = df_cs.merge(df_constructors[['constructorId', 'constructorRef']], how = 'left', on = 'constructorId')
+df_cs.head()
+
+# COMMAND ----------
+
+# how many races did the constructors win in the history of f1, up to March 2021?
+px.histogram(df_cs[df_cs['wins'] ==1], x = 'constructorRef', title = "How many races did the constructors win in the history of f1, up to March 2021?")
 
 # COMMAND ----------
 
@@ -71,75 +81,53 @@ df.head()
 
 # COMMAND ----------
 
-# how many races did the constructors win?
-px.histogram(df[df['wins'] ==1], x = 'constructorRef')
-
-# COMMAND ----------
-
-# results
+# reading race.csv
 c = "raw/races.csv"
 
 obj = s3.get_object(Bucket= bucket, Key= c)
 df_race = pd.read_csv(obj['Body'])
-df_race
+df_race.head()
 
 # COMMAND ----------
 
-# number of race each circuit has held
-px.histogram(df_race, x = 'name')
+# How many race has each circuit held in the history of f1?
+px.histogram(df_race, x = 'name', title = "How many race has each circuit held in the history of f1?")
 
 # COMMAND ----------
 
-# MAGIC %md #### Championship
+# MAGIC %md #### Constructor Championship
 
 # COMMAND ----------
 
-df = df.merge(df_race[['raceId','year','round',	'circuitId']], how = 'left', on = 'raceId')
+# append season, round and circuitId to constructor standing dataset
+df_cs = df_cs.merge(df_race[['raceId','year','round','circuitId']], how = 'left', on = 'raceId')
 
 # COMMAND ----------
 
-idx = df.groupby(['year'])['round'].transform(max) == df['round']
-df_champion = df[idx]
+# filter the last round of each season
+idx = df_cs.groupby(['year'])['round'].transform(max) == df_cs['round']
+df_champion = df_cs[idx]
 
 # COMMAND ----------
 
+# filter the winner in each last round, i.e. each season's constructor champion
 df_champion = df_champion[df_champion['position'] == 1]
-
-# COMMAND ----------
-
-# how many championships did constructors win?
-px.histogram(df_champion, x = 'constructorRef')
-
-# COMMAND ----------
-
-df_champion
+df_champion.head()
 
 # COMMAND ----------
 
 # how many rounds are there each season?
-px.scatter(df_champion[df_champion['position'] == 1], x = 'year', y = 'round')
+px.scatter(df_champion, x = 'year', y = 'round', title="How many rounds are there in each season?")
 
 # COMMAND ----------
 
-# championship every season/year
-df_champion[df_champion['position'] == 1].sort_values('year').tail(20)
+# Last five championship, including the winner of the first race of 2021.  
+df_champion.sort_values('year').tail()
 
 # COMMAND ----------
 
-# constructor result
-c = "raw/constructor_results.csv"
-
-obj = s3.get_object(Bucket= bucket, Key= c)
-df_cr = pd.read_csv(obj['Body'])
-df_cr.head() 
-
-# COMMAND ----------
-
-# status
-c = "raw/status.csv"
-
-obj = s3.get_object(Bucket= bucket, Key= c)
-df_s = pd.read_csv(obj['Body'])
+# how many championships did each constructors win in the history of f1?
+px.histogram(df_champion, x = 'constructorRef', title = "How many championships did the constructors win in the history of f1?")
 
 # COMMAND ----------
 
@@ -147,26 +135,12 @@ df_s = pd.read_csv(obj['Body'])
 c = "raw/results.csv"
 
 obj = s3.get_object(Bucket= bucket, Key= c)
-df_r = pd.read_csv(obj['Body'])
-df_r
+df_result = pd.read_csv(obj['Body'])
+df_result.head()
 
 # COMMAND ----------
 
-# why drivers did not finish their race?
-df_p = df_r[['raceId', 'statusId']].merge(df_s, how = 'left', on = 'statusId')
-df_p = df_p[~df_p['status'].str.contains('Lap')]
-px.histogram(df_p[df_p['status'] != 'Finished'], x = 'status')
-
-# COMMAND ----------
-
-#add year，delete year = 2021
-df_y = df_race[['raceId','year']].merge(df_r, how = 'left', on = 'raceId')
-df_y = df_y[~df_y['year'].isin([2021])]
-df_y
-
-# COMMAND ----------
-
-# status classification
+# reading status.csv
 c = "raw/status.csv"
 
 obj = s3.get_object(Bucket= bucket, Key= c)
@@ -175,38 +149,53 @@ display(df_status)
 
 # COMMAND ----------
 
-# MAGIC %md #### Engine problems
+# why have drivers failed to finish their races?
+df_plot = df_result[['raceId', 'statusId']].merge(df_status, how = 'left', on = 'statusId') # append status explanation to results
+df_plot = df_plot[~df_plot['status'].str.contains('Lap')] # remove finishing with laps behind the lead
+px.histogram(df_plot[df_plot['status'] != 'Finished'], x = 'status', title = "For what reason were the drivers out before the end of their races?") # remove the finished status
 
 # COMMAND ----------
 
-# The frequency of car breakdown (statusId = 5) for each constructor by seasons
+# MAGIC %md #### Feature I: Engine problems
+
+# COMMAND ----------
+
+# append year to race result and remove race results of 2021 (imcomplete season)
+df_y = df_race[['raceId','year']].merge(df_result, how = 'left', on = 'raceId')
+df_y = df_y[~df_y['year'].isin([2021])]
+df_y.head()
+
+# COMMAND ----------
+
+# Filter race results ending with engine problem (statusId = 5) 
 df_b = df_y[df_y['statusId'].isin([5])]
-df_b
+df_b.head()
 
 # COMMAND ----------
 
+# Count the number of engine problems each constructor had in each year
 df_b = df_b.groupby(['year','constructorId']).statusId.value_counts()
 df_b = df_b.reset_index(name='engineproblem')
 display(df_b)
 
 # COMMAND ----------
 
-# engine problems
+# Question: Why rejoin the count with the year dataframe
 df_car = df_b[['year','constructorId','engineproblem']].merge(df_y, how='outer', on=['constructorId', 'year'])
 df_car['engineproblem'] = df_car['engineproblem'].replace(np.nan, 0)
-df_car
+df_car.head()
 
 # COMMAND ----------
 
-# MAGIC %md #### Driver selection
+# MAGIC %md #### Feature II: Driver Selection
 
 # COMMAND ----------
 
 # average points in this season
-df_points = df_car.groupby(['year','constructorId']).points.mean()
+df_points = df_car.groupby(['year','constructorId']).points.mean() # Average Point 
 df_points = df_points.reset_index(name='avgpoints_c')
-df_points.loc[:, 'participation'] = 1
-df_points
+df_points.loc[:, 'participation'] = 1 # Dummy variable for participation: 0 for absence, 1 for participation
+df_points.head()
 
 # COMMAND ----------
 
@@ -218,3 +207,18 @@ df_per
 
 # COMMAND ----------
 
+# MAGIC %md
+# MAGIC #### Feature III: Metrics of constructor's consistency
+# MAGIC 
+# MAGIC - Measures whether a constructor participates consecutively, whether it is a new comer, or it rebrands itself frequently. 
+# MAGIC - Weighted average of performance over the last five seasons. 
+# MAGIC - Punish both absence of participation and low ranking. 
+
+# COMMAND ----------
+
+# constructor result
+c = "raw/constructor_results.csv"
+
+obj = s3.get_object(Bucket= bucket, Key= c)
+df_cr = pd.read_csv(obj['Body'])
+df_cr.head() 
