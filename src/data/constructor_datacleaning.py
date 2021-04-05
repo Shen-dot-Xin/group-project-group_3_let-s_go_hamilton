@@ -1,11 +1,11 @@
 # Databricks notebook source
-
+# MAGIC %md ### Data Exploration
 
 # COMMAND ----------
 
 # MAGIC %md
 # MAGIC 
-# MAGIC This notebook cleans the datasets related to the f1 constructor championship prediction.
+# MAGIC This notebook explores the datasets related to the f1 constructor championship prediction.
 # MAGIC 
 # MAGIC The datasets are: 
 # MAGIC  - constructors.csv
@@ -14,13 +14,6 @@
 # MAGIC  - races.csv
 # MAGIC  - results.csv
 # MAGIC  - status.csv
-# MAGIC  
-# MAGIC  
-# MAGIC  The following features are engineered: 
-# MAGIC  - Engine Problems: Shows the reliability of the constructors' cars, especially focusing on the engine.
-# MAGIC  - Drivers performance: the stronger the overall perfomance of drivers in the last season, the more the points the constructors win.
-# MAGIC  - Constructor's consistency
-# MAGIC  
 
 # COMMAND ----------
 
@@ -40,11 +33,6 @@ import plotly.express as px
 
 s3 = boto3.client('s3')
 bucket = "columbia-gr5069-main"
-
-# COMMAND ----------
-
-# MAGIC %md 
-# MAGIC ## Exploratory Data Analysis and Visualization
 
 # COMMAND ----------
 
@@ -156,69 +144,12 @@ px.histogram(df_plot[df_plot['status'] != 'Finished'], x = 'status', title = "Fo
 
 # COMMAND ----------
 
-# MAGIC %md #### Feature I: Engine problems
-
-# COMMAND ----------
-
-# append year to race result and remove race results of 2021 (imcomplete season)
-df_y = df_race[['raceId','year']].merge(df_result, how = 'left', on = 'raceId')
-df_y = df_y[~df_y['year'].isin([2021])]
-df_y.head()
-
-# COMMAND ----------
-
-# Filter race results ending with engine problem (statusId = 5) 
-df_b = df_y[df_y['statusId'].isin([5])]
-df_b.head()
-
-# COMMAND ----------
-
-# Count the number of engine problems each constructor had in each year
-df_b = df_b.groupby(['year','constructorId']).statusId.value_counts()
-df_b = df_b.reset_index(name='engineproblem')
-display(df_b)
-
-# COMMAND ----------
-
-# Question: Why rejoin the count with the year dataframe
-df_car = df_b[['year','constructorId','engineproblem']].merge(df_y, how='outer', on=['constructorId', 'year'])
-df_car['engineproblem'] = df_car['engineproblem'].replace(np.nan, 0)
-df_car.head()
-
-# COMMAND ----------
-
-# MAGIC %md #### Feature II: Driver Selection
-
-# COMMAND ----------
-
-# average points in this season
-df_points = df_car.groupby(['year','constructorId']).points.mean() # Average Point 
-df_points = df_points.reset_index(name='avgpoints_c')
-df_points.loc[:, 'participation'] = 1 # Dummy variable for participation: 0 for absence, 1 for participation
-df_points.head()
-
-# COMMAND ----------
-
-#driver selection
-df_per = df_points[['year','constructorId','avgpoints_c','participation']].merge(df_car, how='outer', on=['constructorId', 'year'])
-df_per['participation'] = df_per['participation'].replace(np.nan, 0)
-df_per['avgpoints_c'] = df_per['avgpoints_c'].replace(np.nan, 0)
-df_per
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC #### Feature III: Metrics of constructor's consistency
-# MAGIC 
-# MAGIC - Measures whether a constructor participates consecutively, whether it is a new comer, or it rebrands itself frequently. 
-# MAGIC - Weighted average of performance over the last five seasons. 
-# MAGIC - Punish both absence of participation and low ranking. 
-
-# COMMAND ----------
-
 # constructor result
 c = "raw/constructor_results.csv"
 
 obj = s3.get_object(Bucket= bucket, Key= c)
 df_cr = pd.read_csv(obj['Body'])
 df_cr.head() 
+
+# COMMAND ----------
+
