@@ -9,8 +9,8 @@
 # MAGIC 
 # MAGIC  The following features are engineered: 
 # MAGIC  - Average Driver Point per race
-# MAGIC  - Engine Problems
 # MAGIC  - First Participation
+# MAGIC  - Engine Problems
 # MAGIC  - Circuits
 # MAGIC  
 
@@ -42,24 +42,24 @@ df.head()
 
 # COMMAND ----------
 
-# MAGIC %md #### Feature I: Average Driver Point per Race
+# MAGIC %md #### Feature I & II: Average Driver Point per Race & Participation
 
 # COMMAND ----------
 
 # average points in this season
 df_x = df.groupby(['year','constructorId']).points.mean() # Average Point 
 df_x = df_x.reset_index(name='avgpoints_c')
-#df_x.loc[:, 'participation'] = 1 # Dummy variable for participation: 0 for absence, 1 for participation
+df_x.loc[:, 'participation'] = 1 # Dummy variable for participation: 0 for absence, 1 for participation
 df_x.head()
 
 # COMMAND ----------
 
-#df_x['participation'] = df_x['participation'].replace(np.nan, 0)
+df_x['participation'] = df_x['participation'].replace(np.nan, 0)
 df_x['avgpoints_c'] = df_x['avgpoints_c'].replace(np.nan, 0)
 
 # COMMAND ----------
 
-# MAGIC %md #### Feature II: Engine problems
+# MAGIC %md #### Feature III: Engine problems
 
 # COMMAND ----------
 
@@ -87,12 +87,12 @@ df_x.head()
 
 # COMMAND ----------
 
-# MAGIC %md 
-# MAGIC #### Feature III: First Participation
+# MAGIC %md
+# MAGIC #### Feature IV: Circuits
 
 # COMMAND ----------
 
-
+# series of dummy variables
 
 # COMMAND ----------
 
@@ -113,23 +113,22 @@ df_champion.head()
 
 # COMMAND ----------
 
-# Last five championship, including the winner of the first race of 2021.  
+df_champion = df_champion[['year', 'constructorId']]
+
+# COMMAND ----------
+
+df_champion['champion'] = 1
 df_champion.sort_values('year').tail()
 
 # COMMAND ----------
 
-
-
-# COMMAND ----------
-
-
+df_xy = df_x.merge(df_champion, how = 'left', on = ['year', 'constructorId'])
+df_xy.head()
 
 # COMMAND ----------
 
-#driver selection
-df_per = df_points[['year','constructorId','avgpoints_c','participation']].merge(df_car, how='outer', on=['constructorId', 'year'])
-
-df_per
+df_xy['champion'] = df_xy['champion'].fillna(0)
+df_xy.head()
 
 # COMMAND ----------
 
