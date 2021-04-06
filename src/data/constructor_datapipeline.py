@@ -16,6 +16,10 @@ import numpy as np
 
 # COMMAND ----------
 
+!pip install s3fs
+
+# COMMAND ----------
+
 s3 = boto3.client('s3')
 bucket = "columbia-gr5069-main"
 
@@ -64,7 +68,7 @@ df_join = df_join.replace({r'\\N': np.nan}, regex=True)
 
 # COMMAND ----------
 
-df_join.write.csv('s3://sx-gr5069/processed/constructor_info.csv', mode="overwrite")
+df_join.to_csv('s3://group3-gr5069/processed/constructor_info.csv', index = False)
 
 # COMMAND ----------
 
