@@ -23,7 +23,7 @@ import numpy as np
 # COMMAND ----------
 
 s3 = boto3.client('s3')
-bucket = "sx-gr5069"
+bucket = "group3-gr5069"
 
 # COMMAND ----------
 
@@ -129,6 +129,10 @@ df_xy.head()
 
 df_xy['champion'] = df_xy['champion'].fillna(0)
 df_xy.head()
+
+# COMMAND ----------
+
+df_xy.to_csv("s3://group3-gr5069/interim/constructor_features.csv", index = False)
 
 # COMMAND ----------
 
