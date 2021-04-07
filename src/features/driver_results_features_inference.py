@@ -16,6 +16,7 @@ import numpy as np
 import matplotlib as mp
 import pandas as pd
 
+from io import StringIO # python3; python2: BytesIO 
 import boto3
 s3 = boto3.client('s3')
 import pandas as pd
@@ -66,10 +67,10 @@ driver_race_results_info_sp.display()
 # COMMAND ----------
 
 # Writing this data to S3 bucket
-driver_race_results_info =driver_race_results_info.select("*").toPandas()
+driver_race_results_mod_sp =driver_race_results_mod_sp.select("*").toPandas()
 bucket = "group3-gr5069" # already created on S3
 csv_buffer = StringIO()
-driver_race_results_info.to_csv(csv_buffer)
+driver_race_results_mod_sp.to_csv(csv_buffer)
 s3_resource = boto3.resource('s3')
 s3_resource.Object(bucket, 'processed/driver_race_results_mod_feat.csv').put(Body=csv_buffer.getvalue())
 
