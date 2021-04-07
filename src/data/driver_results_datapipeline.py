@@ -9,7 +9,7 @@
 
 #Loading required Functions and Packages
 from pyspark.sql import Window
-from pyspark.sql.functions import datediff, current_date, avg, col, round, upper, max, min, lit, sum, countDistinct, concat
+from pyspark.sql.functions import datediff, current_date, avg, col, round, upper, max, min, lit, sum, countDistinct, concat, when,coalesce,lit
 import pyspark.sql.functions as psf
 from pyspark.sql.types import IntegerType
 import matplotlib as mp
@@ -68,7 +68,7 @@ df_const_standings = const_standings.select(col("constructorId"),col("raceId"), 
 driver_race_results= df_results.join(df_driver_standings, on=['raceId', 'driverId'])
 driver_race_results= driver_race_results.join(races.select(col("raceId"), col("year").alias("raceYear"), col("date").alias("raceDate")), on=['raceId'])
 driver_race_results= driver_race_results.join(df_const_standings, on=['raceId', 'constructorId'])
-driver_race_results= driver_race_results.join(df_pitstops, on=['raceId', 'driverId'])
+driver_race_results= driver_race_results.join(df_pitstops, on=['raceId', 'driverId'], how="left")
 
 # Replacing the /N newline values with NA in this table
 driver_race_results =driver_race_results.select("*").toPandas()
@@ -92,42 +92,34 @@ s3_resource.Object(bucket, 'interim/driver_race_results_joined_interim.csv').put
 # COMMAND ----------
 
 #Reading the Interim data from Group's S3 bucket
-bucket = "group3-gr5069"
-f1_data = "interim/driver_race_results_joined_interim.csv"
-obj = s3.get_object(Bucket= bucket, Key= f1_data)
-driver_race_results_mod = pd.read_csv(obj['Body'], index_col=0)
+driver_race_results_mod= spark.read.csv('s3://group3-gr5069/interim/driver_race_results_joined_interim.csv', header=True, inferSchema=True)
+driver_race_results_mod = driver_race_results_mod.drop('_c0')
 
 # COMMAND ----------
 
-# Create a view or table out 
-driver_race_results_sp = spark.createDataFrame(driver_race_results_mod)
-driver_race_results_sp.createOrReplaceTempView("driver_race_results_view")
+driver_agg = driver_race_results_mod.na.drop().groupBy("raceId").agg(max("raceLaps").alias('max_raceLaps'), \
+                                             avg("raceDuration").alias('avg_raceDur'))
+driver_race_results_mod= driver_race_results_mod.join((driver_agg), on=['raceId'], how="left")
 
 # COMMAND ----------
 
-# DBTITLE 1,Interpolating raceDuration, finishPosition from driverRaceDuration
-from pyspark.sql import SQLContext
-sqlContext = SQLContext(sc)
-driver_race_results_sp = sqlContext.sql("SELECT mas.*, agg.max_raceLaps, agg.avg_raceDur  \
-                      FROM `driver_race_results_view` mas \
-                      LEFT JOIN \
-                      (SELECT raceId, MAX(raceLaps) AS max_raceLaps, AVG(raceDuration) as avg_raceDur \
-                         FROM `driver_race_results_view` GROUP BY raceId) as agg ON mas.raceId = agg.raceId \
-                      WHERE driverRacePoints = 0 \
-                      ORDER BY mas.raceId DESC, positionOrder;")
-driver_race_results_mod =driver_race_results_sp.select("*").toPandas()
+driver_race_results_mod = driver_race_results_mod.withColumn("finishPosition", coalesce(driver_race_results_mod.finishPosition,lit(999)))
+driver_race_results_mod = driver_race_results_mod.withColumn("fastestLap", coalesce(driver_race_results_mod.fastestLap,lit(0)))
+driver_race_results_mod = driver_race_results_mod.withColumn("fastestLapSpeed", coalesce(driver_race_results_mod.fastestLapSpeed,lit(0)))
+driver_race_results_mod = driver_race_results_mod.withColumn("raceDuration", coalesce(driver_race_results_mod.raceDuration,driver_race_results_mod.avg_raceDur))
 
-# COMMAND ----------
 
-driver_race_results_mod.loc[driver_race_results_mod['fastestLap'].isnull(),'fastestLap'] = 0
-driver_race_results_mod.loc[driver_race_results_mod['finishPosition'].isnull(),'finishPosition'] = 999
-driver_race_results_mod.loc[driver_race_results_mod['fastestLapSpeed'].isnull(),'fastestLapSpeed'] = 0
-driver_race_results_mod.loc[driver_race_results_mod['raceDuration'].isnull(),'raceDuration'] = driver_race_results_mod['avg_raceDur']
-driver_race_results_mod = driver_race_results_mod.drop(columns=['max_raceLaps', 'avg_raceDur'])
+driver_race_results_mod = driver_race_results_mod.withColumn("totPitstopDur", coalesce(driver_race_results_mod.totPitstopDur,lit(0)))
+driver_race_results_mod = driver_race_results_mod.withColumn("avgPitstopDur", coalesce(driver_race_results_mod.avgPitstopDur,lit(0)))
+driver_race_results_mod = driver_race_results_mod.withColumn("countPitstops", coalesce(driver_race_results_mod.countPitstops,lit(0)))
+driver_race_results_mod = driver_race_results_mod.withColumn("firstPitstopLap", coalesce(driver_race_results_mod.firstPitstopLap,lit(0)))
+
+driver_race_results_mod = driver_race_results_mod.drop('max_raceLaps', 'avg_raceDur')
 
 # COMMAND ----------
 
 # Writing this data to S3 bucket
+driver_race_results_mod =driver_race_results_mod.select("*").toPandas()
 bucket = "group3-gr5069" # already created on S3
 csv_buffer = StringIO()
 driver_race_results_mod.to_csv(csv_buffer)
@@ -144,7 +136,7 @@ driver_race_results_mod_sp = driver_race_results_mod_sp.drop('_c0')
 # COMMAND ----------
 
 #Joining Driver,Race and Contructor Information just for exploration purposes 
-driver_race_results_info= driver_race_results_mod_sp.join(drivers.select(col("driverId"), concat(drivers.forename,drivers.surname).alias("driverName"), col("nationality").alias("driverNat")), on=['driverId']).join(constructors.select(col("constructorId"),col("name").alias("constructorName"),col("nationality").alias("constructorNat")), on=['constructorId']).join(races.select(col("raceId"), col("name").alias("raceName"),col("round").alias("raceRound")), on=['raceId'])
+driver_race_results_info= driver_race_results_mod_sp.join(drivers.select(col("driverId"), concat(drivers.forename,drivers.surname).alias("driverName"), col("nationality").alias("driverNat")), on=['driverId'], how="left").join(constructors.select(col("constructorId"),col("name").alias("constructorName"),col("nationality").alias("constructorNat")), on=['constructorId'], how="left").join(races.select(col("raceId"), col("name").alias("raceName"),col("round").alias("raceRound")), on=['raceId'], how="left")
 
 # Rearranging and dropping few columns to make it readable in one view
 driver_race_results_info = driver_race_results_info.select("raceId","raceName", "raceYear", "raceDate", "raceRound","driverName","driverNat", "constructorName", "gridPosition", "finishPosition", "positionOrder","driverRacePoints","raceLaps","raceDuration","fastestLap","fastestLapRank", "fastestLapSpeed","driverStPosition", "driverSeasonPoints", "driverSeasonWins","constStPosition", "constSeasonPoints", "constSeasonWins")
@@ -154,7 +146,6 @@ driver_race_results_info= driver_race_results_info.sort(driver_race_results_info
 
 # COMMAND ----------
 
-# Writing this data to S3 bucket
 # Writing this data to S3 bucket
 driver_race_results_info =driver_race_results_info.select("*").toPandas()
 bucket = "group3-gr5069" # already created on S3
