@@ -9,7 +9,7 @@
 
 #Loading required Functions and Packages
 from pyspark.sql import Window
-from pyspark.sql.functions import datediff, current_date, avg, col, round, upper, max, min, lit, sum, countDistinct, concat, to_date,when
+from pyspark.sql.functions import datediff, current_date, avg, col, round, upper, max, min, lit, sum, countDistinct, concat, to_date,when, lead,lag,desc
 import pyspark.sql.functions as psf
 from pyspark.sql.types import IntegerType
 import numpy as np
@@ -22,17 +22,18 @@ import pandas as pd
 
 # COMMAND ----------
 
-#Reading Drivers data
+#Reading Drivers Performance data
 driver_race_results_mod_sp= spark.read.csv('s3://group3-gr5069/processed/driver_race_results_mod.csv', header=True, inferSchema=True)
 driver_race_results_mod_sp = driver_race_results_mod_sp.drop('_c0')
+
+#Reading Drivers Performance data
+driver_race_results_info_sp= spark.read.csv('s3://group3-gr5069/processed/driver_race_results_info.csv', header=True, inferSchema=True)
+driver_race_results_info_sp = driver_race_results_info_sp.drop('_c0')
 
 # COMMAND ----------
 
 # Changing the data type to Date 
-driver_race_results_mod_sp = driver_race_results_mod_sp.withColumn("label", to_date(col("raceDate"),"yyyy-mm-dd"))
-
-#Ordering the dataframe for view convenience
-driver_race_results_mod_sp= driver_race_results_mod_sp.sort(driver_race_results_mod_sp.raceId.desc(), driver_race_results_mod_sp.positionOrder)
+driver_race_results_mod_sp = driver_race_results_mod_sp.withColumn("raceDate", to_date(col("raceDate"),"yyyy-mm-dd"))
 
 # COMMAND ----------
 
@@ -41,11 +42,26 @@ driver_race_results_mod_sp = driver_race_results_mod_sp.withColumn("drivSecPos",
 
 # COMMAND ----------
 
+# Creating a Column to get the Drivers finish postion in the Race_Minus_1 (RM1) race
+driver_race_results_mod_sp = driver_race_results_mod_sp.withColumn('finishPositionRM1', lead('finishPosition', 1, 999).over(Window.partitionBy('driverId').orderBy(desc('raceDate'))))
+
+# Creating a Column to get the Drivers finish postion in the Race_Minus_2 (RM2) race
+driver_race_results_mod_sp = driver_race_results_mod_sp.withColumn('finishPositionRM2', lead('finishPosition', 2, 999).over(Window.partitionBy('driverId').orderBy(desc('raceDate'))))
+
+# Creating a Column to get the Drivers finish postion in the Race_Minus_3 (RM3) race
+driver_race_results_mod_sp = driver_race_results_mod_sp.withColumn('finishPositionRM3', lead('finishPosition', 3, 999).over(Window.partitionBy('driverId').orderBy(desc('raceDate'))))
+
+# COMMAND ----------
+
+#Ordering the dataframe for view convenience and viewing data to check 
+driver_race_results_mod_sp= driver_race_results_mod_sp.sort(driver_race_results_mod_sp.raceId.desc(), driver_race_results_mod_sp.positionOrder)
 driver_race_results_mod_sp.display()
 
 # COMMAND ----------
 
-driver_race_results_mod_sp.printSchema()
+#Ordering the dataframe for view convenience and viewing the infor data frame just to reference, compare and check columns 
+driver_race_results_info_sp= driver_race_results_info_sp.sort(driver_race_results_info_sp.raceId.desc(), driver_race_results_info_sp.positionOrder)
+driver_race_results_info_sp.display()
 
 # COMMAND ----------
 
@@ -55,7 +71,7 @@ bucket = "group3-gr5069" # already created on S3
 csv_buffer = StringIO()
 driver_race_results_info.to_csv(csv_buffer)
 s3_resource = boto3.resource('s3')
-s3_resource.Object(bucket, 'processed/driver_race_results_info.csv').put(Body=csv_buffer.getvalue())
+s3_resource.Object(bucket, 'processed/driver_race_results_mod_feat.csv').put(Body=csv_buffer.getvalue())
 
 # COMMAND ----------
 
