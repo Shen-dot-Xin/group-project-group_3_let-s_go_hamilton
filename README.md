@@ -55,8 +55,11 @@ We want to experiment with a number of models: logistic regression, random fores
 
 **Features**
 
- - Average Driver Point per race
- - First Participation
+ - Average Driver Point per race (last year and the year before last)
+ - Participation
  - Engine Problems
  - Circuits 
+ - Number of Races drivers complete per season
+ - Fastest Lap
+ - Fastest Lap Speed
 
