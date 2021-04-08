@@ -34,11 +34,42 @@ from sklearn.model_selection import train_test_split
 
 # COMMAND ----------
 
+#Reading Drivers Performance data prepared for modeling with features
+driverRaceDF= spark.read.csv('s3://group3-gr5069/processed/driver_race_results_mod_feat.csv', header=True, inferSchema=True)
+driverRaceDF = driverRaceDF.drop('_c0')
 
-driver_race_results_model =driver_race_results.select("*").toPandas()
-driver_race_results_model = driver_race_results_model.dropna()
+# COMMAND ----------
 
-X_train, X_test, y_train, y_test = train_test_split(driver_race_results_model, driver_race_results_model[["positionOrder"]].values.ravel(), random_state=42)
+# Dropping the pitstops data since this data is only available post 2011 races
+driverRaceDF = driverRaceDF.drop("totPitstopDur","avgPitstopDur","countPitstops","firstPitstopLap")
+
+# COMMAND ----------
+
+# Dropping similar columns to target variables
+driverRaceDF = driverRaceDF.drop("positionOrder","driverRacePoints")
+
+# COMMAND ----------
+
+#Splitting the data frame into Train and Test data based on the requirements of the Project
+driverRaceTrainDF = driverRaceDF.filter(driverRaceDF.raceYear <= 2010)
+driverRaceTestDF = driverRaceDF.filter(driverRaceDF.raceYear > 2010)
+
+# COMMAND ----------
+
+# Converting the Spark Dataframes into Pandas Dataframes
+driverRaceTrainDF =driverRaceTrainDF.select("*").toPandas()
+driverRaceTestDF =driverRaceTestDF.select("*").toPandas()
+
+# COMMAND ----------
+
+X_train = driverRaceTrainDF.drop('finishPosition')
+X_test = driverRaceTestDF.drop('finishPosition')
+y_train = driverRaceTrainDF['finishPosition']
+y_test = driverRaceTestDF['finishPosition']
+
+# COMMAND ----------
+
+driverRaceDF.display()
 
 # COMMAND ----------
 
