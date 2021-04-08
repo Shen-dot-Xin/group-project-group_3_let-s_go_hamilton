@@ -97,7 +97,7 @@ driver_race_results_mod = driver_race_results_mod.drop('_c0')
 
 # COMMAND ----------
 
-driver_agg = driver_race_results_mod.na.drop().groupBy("raceId").agg(max("raceLaps").alias('max_raceLaps'), \
+driver_agg = driver_race_results_mod.groupBy("raceId").agg(max("raceLaps").alias('max_raceLaps'), \
                                              avg("raceDuration").alias('avg_raceDur'))
 driver_race_results_mod= driver_race_results_mod.join((driver_agg), on=['raceId'], how="left")
 
@@ -114,7 +114,7 @@ driver_race_results_mod = driver_race_results_mod.withColumn("avgPitstopDur", co
 driver_race_results_mod = driver_race_results_mod.withColumn("countPitstops", coalesce(driver_race_results_mod.countPitstops,lit(0)))
 driver_race_results_mod = driver_race_results_mod.withColumn("firstPitstopLap", coalesce(driver_race_results_mod.firstPitstopLap,lit(0)))
 
-driver_race_results_mod = driver_race_results_mod.drop('max_raceLaps', 'avg_raceDur')
+#driver_race_results_mod = driver_race_results_mod.drop('max_raceLaps', 'avg_raceDur')
 
 # COMMAND ----------
 
