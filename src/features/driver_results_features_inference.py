@@ -50,7 +50,21 @@ driver_race_results_mod_sp = driver_race_results_mod_sp.withColumn('finishPositi
 driver_race_results_mod_sp = driver_race_results_mod_sp.withColumn('finishPositionRM2', lead('finishPosition', 2, 999).over(Window.partitionBy('driverId').orderBy(desc('raceDate'))))
 
 # Creating a Column to get the Drivers finish postion in the Race_Minus_3 (RM3) race
-driver_race_results_mod_sp = driver_race_results_mod_sp.withColumn('finishPositionRM3', lead('finishPosition', 3, 999).over(Window.partitionBy('driverId').orderBy(desc('raceDate'))))
+driver_race_results_mod_sp = driver_race_results_mod_sp.withColumn('finishPositionRM3', lead('finishPosition', 3, 999).over(Window.partitionBy('driverId').orderBy(desc('raceDate'))))\
+
+# COMMAND ----------
+
+#### Storing the previous race secPos in Binary form
+
+
+# Creating a Column to get the Drivers finish postion in the Race_Minus_1 (RM1) race
+driver_race_results_mod_sp = driver_race_results_mod_sp.withColumn('drivSecPosRM1', when(lead('finishPosition', 1, 999).over(Window.partitionBy('driverId').orderBy(desc('raceDate')))==2,1).otherwise(0))
+
+# Creating a Column to get the Drivers finish postion in the Race_Minus_2 (RM2) race
+driver_race_results_mod_sp = driver_race_results_mod_sp.withColumn('drivSecPosRM2', when(lead('finishPosition', 2, 999).over(Window.partitionBy('driverId').orderBy(desc('raceDate')))==2,1).otherwise(0))
+
+# Creating a Column to get the Drivers finish postion in the Race_Minus_3 (RM3) race
+driver_race_results_mod_sp = driver_race_results_mod_sp.withColumn('drivSecPosRM3', when(lead('finishPosition', 3, 999).over(Window.partitionBy('driverId').orderBy(desc('raceDate')))==2,1).otherwise(0))
 
 # COMMAND ----------
 
@@ -73,6 +87,3 @@ csv_buffer = StringIO()
 driver_race_results_mod_sp.to_csv(csv_buffer)
 s3_resource = boto3.resource('s3')
 s3_resource.Object(bucket, 'processed/driver_race_results_mod_feat.csv').put(Body=csv_buffer.getvalue())
-
-# COMMAND ----------
-
