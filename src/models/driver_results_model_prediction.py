@@ -38,10 +38,13 @@ from sklearn.model_selection import train_test_split
 driverRaceDF= spark.read.csv('s3://group3-gr5069/processed/driver_race_results_mod_feat.csv', header=True, inferSchema=True)
 driverRaceDF = driverRaceDF.drop('_c0')
 
+#Line of code to check data quality when needed
+#driverRaceDF.select('avg_raceDur').withColumn('isNull_c',psf.col('avg_raceDur').isNull()).where('isNull_c = True').count()
+
 # COMMAND ----------
 
 # Dropping the pitstops data since this data is only available post 2011 races
-driverRaceDF = driverRaceDF.drop("totPitstopDur","avgPitstopDur","countPitstops","firstPitstopLap")
+driverRaceDF = driverRaceDF.drop("totPitstopDur","avgPitstopDur","countPitstops","firstPitstopLap","raceDate")
 
 # COMMAND ----------
 
@@ -62,14 +65,10 @@ driverRaceTestDF =driverRaceTestDF.select("*").toPandas()
 
 # COMMAND ----------
 
-X_train = driverRaceTrainDF.drop('finishPosition')
-X_test = driverRaceTestDF.drop('finishPosition')
+X_train = driverRaceTrainDF.drop(['finishPosition'], axis=1)
+X_test = driverRaceTestDF.drop(['finishPosition'], axis=1)
 y_train = driverRaceTrainDF['finishPosition']
 y_test = driverRaceTestDF['finishPosition']
-
-# COMMAND ----------
-
-driverRaceDF.display()
 
 # COMMAND ----------
 
@@ -108,7 +107,7 @@ with mlflow.start_run():
   mlflow.log_metric("r2", r2) 
   
   # Create feature importance
-  importance = pd.DataFrame(list(zip(driver_race_results_model.columns, rf.feature_importances_)), 
+  importance = pd.DataFrame(list(zip(X_train.columns, rf.feature_importances_)), 
                               columns=["Feature", "Importance"]
                             ).sort_values("Importance", ascending=False)
 
@@ -139,3 +138,6 @@ with mlflow.start_run():
     temp.close() # Delete the temp file
 
   display(fig)
+
+# COMMAND ----------
+
