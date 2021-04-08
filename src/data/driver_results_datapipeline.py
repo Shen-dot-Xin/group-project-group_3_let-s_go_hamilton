@@ -106,6 +106,7 @@ driver_race_results_mod= driver_race_results_mod.join((driver_agg), on=['raceId'
 driver_race_results_mod = driver_race_results_mod.withColumn("finishPosition", coalesce(driver_race_results_mod.finishPosition,lit(999)))
 driver_race_results_mod = driver_race_results_mod.withColumn("fastestLap", coalesce(driver_race_results_mod.fastestLap,lit(0)))
 driver_race_results_mod = driver_race_results_mod.withColumn("fastestLapSpeed", coalesce(driver_race_results_mod.fastestLapSpeed,lit(0)))
+driver_race_results_mod = driver_race_results_mod.withColumn("fastestLapRank", coalesce(driver_race_results_mod.fastestLapRank,lit(999)))
 driver_race_results_mod = driver_race_results_mod.withColumn("raceDuration", coalesce(driver_race_results_mod.raceDuration,driver_race_results_mod.avg_raceDur))
 
 
