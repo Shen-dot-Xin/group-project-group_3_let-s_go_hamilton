@@ -46,7 +46,7 @@ driver_race_results_mod_sp = driver_race_results_mod_sp.withColumn("drivSecPos",
 
 # Converting the Binary column to carry categorical string just in case it is to be used in modeling
 cat_column = udf(lambda y: "No" if y==0 else "yes", StringType())
-driver_race_results_mod_sp = driver_race_results_mod_sp.withColumn("drivSecPosCat", when(driver_race_results_mod_sp.finishPosition==2,1) .otherwise(0))
+driver_race_results_mod_sp = driver_race_results_mod_sp.withColumn("drivSecPosCat", cat_column("drivSecPos"))
 
 # COMMAND ----------
 
