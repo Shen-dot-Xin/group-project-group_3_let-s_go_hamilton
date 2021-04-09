@@ -12,6 +12,9 @@
 # MAGIC  - Average Driver Point per race
 # MAGIC  - First Participation
 # MAGIC  - Engine Problems
+# MAGIC  - The number of completed races
+# MAGIC  - Average Fastest Lap
+# MAGIC  - Average Fastest Speed
 # MAGIC 
 # MAGIC  
 
@@ -20,6 +23,8 @@
 import boto3
 import pandas as pd
 import numpy as np
+
+!pip install s3fs
 
 # COMMAND ----------
 
@@ -112,6 +117,54 @@ df_3.head()
 # COMMAND ----------
 
 df_x = df_3.merge(df_x, how = 'left', on = ['year', 'constructorId'])
+df_x.head()
+
+# COMMAND ----------
+
+# MAGIC %md #### Feature V: Completed Races
+
+# COMMAND ----------
+
+df_4 = df.groupby(['year', 'constructorId']).position.count()
+df_4 = df_4.reset_index(name='race_count')
+df_4 = df_4.fillna(0)
+df_4
+
+# COMMAND ----------
+
+df_x = df_4.merge(df_x, how = 'left', on = ['year', 'constructorId'])
+df_x.head()
+
+# COMMAND ----------
+
+# MAGIC %md #### Feature VI: Fastest Lap
+
+# COMMAND ----------
+
+df_5 = df.groupby(['year', 'constructorId']).fastestLap.mean()
+df_5 = df_5.reset_index(name='avg_fastestlap')
+df_5 = df_5.fillna(0)
+df_5
+
+# COMMAND ----------
+
+df_x = df_5.merge(df_x, how = 'left', on = ['year', 'constructorId'])
+df_x.head()
+
+# COMMAND ----------
+
+# MAGIC %md #### Feature VI: Fastest Lap Speed
+
+# COMMAND ----------
+
+df_6 = df.groupby(['year', 'constructorId']).fastestLapSpeed.mean()
+df_6 = df_6.reset_index(name='avg_fastestspeed')
+df_6 = df_6.fillna(0)
+df_6
+
+# COMMAND ----------
+
+df_x = df_6.merge(df_x, how = 'left', on = ['year', 'constructorId'])
 df_x.head()
 
 # COMMAND ----------
