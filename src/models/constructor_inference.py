@@ -6,10 +6,65 @@
 
 from pyspark.sql.types import DoubleType
 from pyspark.ml.regression import LinearRegression
+from pyspark.ml.feature import VectorAssembler
+from pyspark.sql import Window
+from pyspark.sql.functions import lag, col, asc
 
 # COMMAND ----------
 
 df = spark.read.csv('s3://group3-gr5069/interim/constructor_features.csv', header = True, inferSchema = True)
+
+# COMMAND ----------
+
+window = Window.partitionBy('constructorId').orderBy(asc('year'))
+
+df = df.withColumn("lag1_avg", lag("avgpoints_c", 1, 0).over(window))
+df = df.withColumn("lag2_avg", lag("avgpoints_c", 2, 0).over(window))
+
+# COMMAND ----------
+
+df = df.withColumn("lag1_fs", lag("avg_fastestspeed", 1, 0).over(window))
+df = df.withColumn("lag2_fs", lag("avg_fastestspeed", 2, 0).over(window))
+
+# COMMAND ----------
+
+df = df.withColumn("lag1_fl", lag("avg_fastestlap", 1, 0).over(window))
+df = df.withColumn("lag2_fl", lag("avg_fastestlap", 2, 0).over(window))
+
+# COMMAND ----------
+
+df = df.withColumn("lag1_nd", lag("unique_drivers", 1, 0).over(window))
+df = df.withColumn("lag2_nd", lag("unique_drivers", 2, 0).over(window))
+
+# COMMAND ----------
+
+df = df.withColumn("lag1_standing", lag("position", 1, 0).over(window))
+df = df.withColumn("lag2_standing", lag("position", 2, 0).over(window))
+
+# COMMAND ----------
+
+df.columns
+
+# COMMAND ----------
+
+vecAssembler = VectorAssembler(inputCols = [ 'avg_fastestspeed','avg_fastestlap','race_count','engineproblem','avgpoints_c',], outputCol = "features")
+
+vecDF = vecAssembler.transform(df)
+
+lr = LinearRegression(featuresCol = "features", labelCol = "champion")
+lrModel = lr.fit(vecDF)
+
+# COMMAND ----------
+
+vecAssembler = VectorAssembler(inputCols = [ 'engineproblem','avgpoints_c', "lag1_avg", "lag2_avg" ], outputCol = "features")
+
+vecDF = vecAssembler.transform(df)
+
+lr = LinearRegression(featuresCol = "features", labelCol = "champion")
+lrModel = lr.fit(vecDF)
+
+print(lrModel.summary.rootMeanSquaredError)
+print(lrModel.summary.r2)
 
 # COMMAND ----------
 
@@ -32,79 +87,14 @@ display(trainDF)
 
 # COMMAND ----------
 
-df.columns
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC ## Vector Assembler
-
-# COMMAND ----------
-
-from pyspark.ml.feature import VectorAssembler
-
-vecAssembler = VectorAssembler(inputCols = [ 'avg_fastestspeed','avg_fastestlap','race_count','engineproblem','avgpoints_c',], outputCol = "features")
-
-vecDF = vecAssembler.transform(df)
-
-lr = LinearRegression(featuresCol = "features", labelCol = "champion")
-lrModel = lr.fit(vecDF)
-
-# COMMAND ----------
-
-vecAssembler = VectorAssembler(inputCols = [ 'engineproblem','avgpoints_c', "lag1_avg", "lag2_avg" ], outputCol = "features")
-
-vecDF = vecAssembler.transform(df)
-
-lr = LinearRegression(featuresCol = "features", labelCol = "champion")
-lrModel = lr.fit(vecDF)
-
-# COMMAND ----------
-
-print(lrModel.summary.rootMeanSquaredError)
-print(lrModel.summary.r2)
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC ## Apply model to test set
-
-# COMMAND ----------
-
-from pyspark.sql import Window
-from pyspark.sql.functions import lag, col, asc
-
-window = Window.partitionBy('constructorId').orderBy(asc('year'))
-
-# COMMAND ----------
-
-df_lag = df.select('year','constructorId', 'avgpoints_c')
-
-# COMMAND ----------
-
-df = df.withColumn("lag1_avg", lag("avgpoints_c", 1, 0).over(window))
-
-df = df.withColumn("lag2_avg", lag("avgpoints_c", 2, 0).over(window))
-
-
-# COMMAND ----------
-
 predDF = lrModel.transform(vecDF)
-
 display(predDF)
 
 # COMMAND ----------
 
 print(lrModel.summary.rootMeanSquaredError)
 print(lrModel.summary.r2)
-
-# COMMAND ----------
-
 lrModel.coefficients
-
-# COMMAND ----------
-
-lrModel.featureImportances
 
 # COMMAND ----------
 
