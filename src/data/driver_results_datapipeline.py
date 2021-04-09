@@ -97,25 +97,32 @@ driver_race_results_mod = driver_race_results_mod.drop('_c0')
 
 # COMMAND ----------
 
+# Creating columns with certain metrics to use them for interpolation
 driver_agg = driver_race_results_mod.groupBy("raceId").agg(max("raceLaps").alias('max_raceLaps'), \
                                              avg("raceDuration").alias('avg_raceDur'))
 driver_race_results_mod= driver_race_results_mod.join((driver_agg), on=['raceId'], how="left")
 
 # COMMAND ----------
 
+# Handling NULLs by either interpolating or by replacing it with a value that is relavant in the context
 driver_race_results_mod = driver_race_results_mod.withColumn("finishPosition", coalesce(driver_race_results_mod.finishPosition,lit(999)))
 driver_race_results_mod = driver_race_results_mod.withColumn("fastestLap", coalesce(driver_race_results_mod.fastestLap,lit(0)))
 driver_race_results_mod = driver_race_results_mod.withColumn("fastestLapSpeed", coalesce(driver_race_results_mod.fastestLapSpeed,lit(0)))
 driver_race_results_mod = driver_race_results_mod.withColumn("fastestLapRank", coalesce(driver_race_results_mod.fastestLapRank,lit(999)))
 driver_race_results_mod = driver_race_results_mod.withColumn("raceDuration", coalesce(driver_race_results_mod.raceDuration,driver_race_results_mod.avg_raceDur))
 
-
+# Handling NULLs by either interpolating or by replacing it with a value that is relavant in the context
 driver_race_results_mod = driver_race_results_mod.withColumn("totPitstopDur", coalesce(driver_race_results_mod.totPitstopDur,lit(0)))
 driver_race_results_mod = driver_race_results_mod.withColumn("avgPitstopDur", coalesce(driver_race_results_mod.avgPitstopDur,lit(0)))
 driver_race_results_mod = driver_race_results_mod.withColumn("countPitstops", coalesce(driver_race_results_mod.countPitstops,lit(0)))
 driver_race_results_mod = driver_race_results_mod.withColumn("firstPitstopLap", coalesce(driver_race_results_mod.firstPitstopLap,lit(0)))
 
 #driver_race_results_mod = driver_race_results_mod.drop('max_raceLaps', 'avg_raceDur')
+
+# COMMAND ----------
+
+# Dropping the Columns that was used for Interpolation
+driver_race_results_mod = driver_race_results_mod.drop("avg_raceDur", "max_raceLaps")
 
 # COMMAND ----------
 
