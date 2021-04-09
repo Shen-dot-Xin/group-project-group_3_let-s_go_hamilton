@@ -9,9 +9,10 @@
 
 #Loading required Functions and Packages
 from pyspark.sql import Window
-from pyspark.sql.functions import datediff, current_date, avg, col, round, upper, max, min, lit, sum, countDistinct, concat, to_date,when, lead,lag,desc
+from pyspark.sql.functions import datediff, current_date, udf, avg, col, round, upper, max, min, lit, sum, countDistinct, concat, to_date,when, lead,lag,desc
 import pyspark.sql.functions as psf
-from pyspark.sql.types import IntegerType
+from pyspark.sql.types import IntegerType, StringType
+import pyspark.mllib.stat
 import numpy as np
 import matplotlib as mp
 import pandas as pd
@@ -40,6 +41,12 @@ driver_race_results_mod_sp = driver_race_results_mod_sp.withColumn("raceDate", t
 
 # Creating a Binary column that says if a driver finished second or not
 driver_race_results_mod_sp = driver_race_results_mod_sp.withColumn("drivSecPos", when(driver_race_results_mod_sp.finishPosition==2,1) .otherwise(0))
+
+# COMMAND ----------
+
+# Converting the Binary column to carry categorical string just in case it is to be used in modeling
+cat_column = udf(lambda y: "No" if y==0 else "yes", StringType())
+driver_race_results_mod_sp = driver_race_results_mod_sp.withColumn("drivSecPosCat", when(driver_race_results_mod_sp.finishPosition==2,1) .otherwise(0))
 
 # COMMAND ----------
 
