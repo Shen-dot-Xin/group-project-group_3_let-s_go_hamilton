@@ -15,8 +15,8 @@
 # MAGIC  - The number of completed races
 # MAGIC  - Average Fastest Lap
 # MAGIC  - Average Fastest Speed
-# MAGIC 
-# MAGIC  
+# MAGIC  - Number of unique drivers
+# MAGIC  - Constructor ranking
 
 # COMMAND ----------
 
@@ -24,7 +24,7 @@ import boto3
 import pandas as pd
 import numpy as np
 
-!pip install s3fs
+#!pip install s3fs
 
 # COMMAND ----------
 
@@ -48,26 +48,34 @@ df.head()
 
 # COMMAND ----------
 
+# Read constructor championships
+c = "processed/constructor_championships.csv"
+
+obj = s3.get_object(Bucket= bucket, Key= c)
+df_cc = pd.read_csv(obj['Body'])
+df_cc.head() 
+
+# COMMAND ----------
+
+# filter races between 1950 and 2017
+df_cc = df_cc[(df_cc['year']>=1950) & (df_cc['year']<=2017)]
+df_cc.head()
+
+# COMMAND ----------
+
 # MAGIC %md
 # MAGIC #### Feature I: Circuits
 
 # COMMAND ----------
 
-# get the name of each race
-bucket = "columbia-gr5069-main"
-c = "raw/races.csv"
-
-obj = s3.get_object(Bucket= bucket, Key= c)
-df_1 = pd.read_csv(obj['Body'])
-df_1 = df_1[['raceId','name','year']]
-display(df_1)
+df_1 = df[['raceId','year', 'circuitId']]
 
 # COMMAND ----------
 
 #get a series of dummy variables
-df_x = pd.concat([df_1['year'], pd.get_dummies(df_1['name'], prefix="")],  axis = 1 )
-df_x = df_x.drop_duplicates(subset=['year'], keep='first', inplace=False)
-df_x
+df_x = pd.concat([df_1['year'], pd.get_dummies(df_1['circuitId'], prefix="gp")],  axis = 1 )
+df_x = df_x.drop_duplicates(subset=['year'], keep='first', inplace=False).reset_index(drop = True)
+df_x.head()
 
 # COMMAND ----------
 
@@ -128,7 +136,7 @@ df_x.head()
 df_4 = df.groupby(['year', 'constructorId']).position.count()
 df_4 = df_4.reset_index(name='race_count')
 df_4 = df_4.fillna(0)
-df_4
+df_4.head()
 
 # COMMAND ----------
 
@@ -144,7 +152,7 @@ df_x.head()
 df_5 = df.groupby(['year', 'constructorId']).fastestLap.mean()
 df_5 = df_5.reset_index(name='avg_fastestlap')
 df_5 = df_5.fillna(0)
-df_5
+df_5.head()
 
 # COMMAND ----------
 
@@ -153,18 +161,49 @@ df_x.head()
 
 # COMMAND ----------
 
-# MAGIC %md #### Feature VI: Fastest Lap Speed
+# MAGIC %md #### Feature VII: Fastest Lap Speed
 
 # COMMAND ----------
 
 df_6 = df.groupby(['year', 'constructorId']).fastestLapSpeed.mean()
 df_6 = df_6.reset_index(name='avg_fastestspeed')
 df_6 = df_6.fillna(0)
-df_6
+df_6.head()
 
 # COMMAND ----------
 
 df_x = df_6.merge(df_x, how = 'left', on = ['year', 'constructorId'])
+df_x.head()
+
+# COMMAND ----------
+
+# MAGIC %md #### Feature VIII: Number of unique drivers
+
+# COMMAND ----------
+
+df_8 = df.groupby(['year', 'constructorId']).driverId.nunique().reset_index(name='unique_drivers')
+df_8.head()
+
+# COMMAND ----------
+
+df_x = df_x.merge(df_8, how = 'left', on = ['year', 'constructorId'])
+df_x.head()
+
+# COMMAND ----------
+
+# MAGIC %md #### Feature IX: Constructor Ranking
+
+# COMMAND ----------
+
+# filter the last round of each season
+idx = df_cc.groupby(['year'])['round'].transform(max) == df_cc['round']
+df_9 = df_cc[idx]
+df_9.head()
+
+# COMMAND ----------
+
+df_9 = df_9[['year', 'constructorId', 'position']]
+df_x = df_x.merge(df_9, how = 'left', on = ['year', 'constructorId'])
 df_x.head()
 
 # COMMAND ----------
@@ -174,24 +213,14 @@ df_x.head()
 
 # COMMAND ----------
 
-# filter the last round of each season
-idx = df.groupby(['year'])['round'].transform(max) == df['round']
-df_champion = df[idx]
-
-# COMMAND ----------
-
 # filter the winner in each last round, i.e. each season's constructor champion
-df_champion = df_champion[df_champion['position'] == 1]
+df_champion = df_9[df_9['position'] == 1]
 df_champion.head()
 
 # COMMAND ----------
 
-df_champion = df_champion[['year', 'constructorId']]
-
-# COMMAND ----------
-
+df_champion = df_champion[['year','constructorId']]
 df_champion['champion'] = 1
-df_champion.sort_values('year').tail()
 
 # COMMAND ----------
 
@@ -206,3 +235,6 @@ df_xy.head()
 # COMMAND ----------
 
 df_xy.to_csv("s3://group3-gr5069/interim/constructor_features.csv", index = False)
+
+# COMMAND ----------
+
