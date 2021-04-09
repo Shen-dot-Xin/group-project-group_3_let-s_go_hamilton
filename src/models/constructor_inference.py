@@ -5,7 +5,6 @@
 # COMMAND ----------
 
 from pyspark.sql.types import DoubleType
-from pyspark.ml.regression import LinearRegression
 from pyspark.ml.feature import VectorAssembler
 from pyspark.sql import Window
 from pyspark.sql.functions import lag, col, asc
@@ -47,24 +46,125 @@ df.columns
 
 # COMMAND ----------
 
-vecAssembler = VectorAssembler(inputCols = [ 'avg_fastestspeed','avg_fastestlap','race_count','engineproblem','avgpoints_c',], outputCol = "features")
+feature_list =['avg_fastestspeed','avg_fastestlap','race_count','engineproblem','unique_drivers','lag1_avg','lag2_avg','lag1_fs','lag2_fs','lag1_fl','lag2_fl','lag1_nd','lag2_nd','lag1_standing','lag2_standing']
+
+# COMMAND ----------
+
+df = df.na.fill(value=0,subset=feature_list)
+
+# COMMAND ----------
+
+vecAssembler = VectorAssembler(inputCols = feature_list, outputCol = "features")
 
 vecDF = vecAssembler.transform(df)
+
+# COMMAND ----------
+
+# MAGIC %md 
+# MAGIC #### Linear Regression
+
+# COMMAND ----------
+
+import os
+import matplotlib.pyplot as plt
+#import mlflow.sklearn
+import seaborn as sns
+
+from pyspark.sql.functions import stddev
+from pyspark.ml.regression import LinearRegression
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import precision_score, recall_score, f1_score 
+from sklearn.metrics import roc_curve, auc
+import tempfile
+
+# COMMAND ----------
+
+def log_rf(experimentID, run_name, features):
+  with mlflow.start_run(experiment_id=experimentID, run_name=run_name) as run:
+    X = df.select(features)
+    
+    # Create model and train it
+    lr = LinearRegression()
+    lr.fit(X, y)
+    
+    # Log model
+    mlflow.sklearn.log_model(lr, "linear-regression-model")
+    
+    # Log params
+    [mlflow.log_param(f) for f in features]
+    
+    # Create metrics
+    rmse = lr.summary.rootMeanSquaredError
+    r2 = lr.summary.r2
+     
+    # Log metrics
+    mlflow.log_metric("rmse", rmse)
+    mlflow.log_metric("r2", r2) 
+    print("  rmse: {}".format(rmse))
+    print("  r2: {}".format(r2)) 
+    
+    # Create feature importance
+    #importance = pd.DataFrame(list(zip(df_XY[['qPosr','dprStandingr','dprWinr','cprStandingr', 'grid']].columns, rf.feature_importances_)), 
+                                #columns=["Feature", "Importance"]
+                             # ).sort_values("Importance", ascending=False)
+    
+    #df_im = stddev
+    
+    # Log importances using a temporary file
+    #temp = tempfile.NamedTemporaryFile(prefix="feature-importance-", suffix=".csv")
+    #temp_name = temp.name
+    #try:
+    #  importance.to_csv(temp_name, index=False)
+    #  mlflow.log_artifact(temp_name, "feature-importance.csv")
+    #finally:
+    #  temp.close() # Delete the temp file
+    
+    # Create plot - roc curve
+    # get false and true positive rates
+    #fpr, tpr, t = roc_curve(y_test, predicted_proba[:,1])
+    # get area under the curve
+    #roc_auc = auc(fpr, tpr)
+    
+    # PLOT ROC curve
+    #fig, ax = plt.subplots()
+    #plt.plot(fpr, tpr, lw=1, color='green', label=f'AUC = {roc_auc:.3f}')
+    #plt.title('ROC Curve for RF classifier')
+    #plt.xlabel('False Positive Rate')
+    #plt.ylabel('True Positive Rate (Recall)')
+    #plt.xlim([-0.05, 1.05])
+    #plt.ylim([-0.05, 1.05])
+    #plt.legend()
+
+    # Log residuals using a temporary file
+    #temp = tempfile.NamedTemporaryFile(prefix="ROC-", suffix=".png")
+    #temp_name = temp.name
+    #try:
+    #  fig.savefig(temp_name)
+    #  mlflow.log_artifact(temp_name, "ROC.png")
+    #finally:
+    #  temp.close() # Delete the temp file
+    #  
+    #display(fig)
+    return run.info.run_uuid
+
+
+# COMMAND ----------
 
 lr = LinearRegression(featuresCol = "features", labelCol = "champion")
 lrModel = lr.fit(vecDF)
 
 # COMMAND ----------
 
-vecAssembler = VectorAssembler(inputCols = [ 'engineproblem','avgpoints_c', "lag1_avg", "lag2_avg" ], outputCol = "features")
-
-vecDF = vecAssembler.transform(df)
-
-lr = LinearRegression(featuresCol = "features", labelCol = "champion")
-lrModel = lr.fit(vecDF)
-
 print(lrModel.summary.rootMeanSquaredError)
 print(lrModel.summary.r2)
+
+# COMMAND ----------
+
+lrModel.coefficients
+
+# COMMAND ----------
+
+# MAGIC %md #### Logistic Regression
 
 # COMMAND ----------
 
@@ -94,7 +194,6 @@ display(predDF)
 
 print(lrModel.summary.rootMeanSquaredError)
 print(lrModel.summary.r2)
-lrModel.coefficients
 
 # COMMAND ----------
 
