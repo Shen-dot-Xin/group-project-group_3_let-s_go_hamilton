@@ -24,6 +24,7 @@ import matplotlib.pyplot as plt
 
 from numpy import savetxt
 
+dbutils.library.installPyPI("mlflow", "1.14.0")
 import mlflow.sklearn
 from sklearn.model_selection import train_test_split
 from sklearn.datasets import load_diabetes
