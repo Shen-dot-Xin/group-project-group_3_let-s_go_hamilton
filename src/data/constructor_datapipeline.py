@@ -81,7 +81,7 @@ df_cs.head()
 
 # COMMAND ----------
 
-df_join2 = df_cs.merge(df_race[['raceId', 'year']], how = 'left', on = 'raceId')
+df_join2 = df_cs.merge(df_race[['raceId', 'year', 'round']], how = 'left', on = 'raceId')
 df_join2.head()
 
 # COMMAND ----------
