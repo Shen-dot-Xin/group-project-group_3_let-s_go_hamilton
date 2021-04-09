@@ -72,3 +72,21 @@ df_join.to_csv('s3://group3-gr5069/processed/constructor_info.csv', index = Fals
 
 # COMMAND ----------
 
+# main dataframe: result
+c = "raw/constructor_standings.csv"
+
+obj = s3.get_object(Bucket= bucket, Key= c)
+df_cs = pd.read_csv(obj['Body'])
+df_cs.head()
+
+# COMMAND ----------
+
+df_join2 = df_cs.merge(df_constructors[['constructorId', 'constructorRef']], how = 'left', on = 'constructorId')
+df_join2.head()
+
+# COMMAND ----------
+
+df_join2.to_csv('s3://group3-gr5069/processed/constructor_championships.csv', index = False)
+
+# COMMAND ----------
+
