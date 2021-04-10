@@ -208,6 +208,24 @@ df_x.head()
 
 # COMMAND ----------
 
+df_x['lag1_avg']=df_x.sort_values('year').groupby('constructorId')['avgpoints_c'].shift()
+df_x['lag2_avg']=df_x.sort_values('year').groupby('constructorId')['lag1_avg'].shift()
+df_x['lag1_ptc']=df_x.sort_values('year').groupby('constructorId')['participation'].shift()
+df_x['lag2_ptc']=df_x.sort_values('year').groupby('constructorId')['lag1_ptc'].shift()
+df_x['lag1_pst']=df_x.sort_values('year').groupby('constructorId')['position'].shift()
+df_x['lag2_pst']=df_x.sort_values('year').groupby('constructorId')['lag1_pst'].shift()
+
+# COMMAND ----------
+
+df_x['lag1_avg']=df_x['lag1_avg'].fillna(0)
+df_x['lag2_avg']=df_x['lag2_avg'].fillna(0)
+df_x['lag1_ptc']=df_x['lag1_ptc'].fillna(0)
+df_x['lag2_ptc']=df_x['lag2_ptc'].fillna(0)
+df_x['lag1_pst']=df_x['lag1_pst'].fillna(0)
+df_x['lag2_pst']=df_x['lag2_pst'].fillna(0)
+
+# COMMAND ----------
+
 # MAGIC %md
 # MAGIC #### Y: Championship
 
