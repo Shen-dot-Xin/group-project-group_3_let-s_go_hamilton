@@ -35,8 +35,8 @@ from pyspark.ml.evaluation import BinaryClassificationEvaluator
 # COMMAND ----------
 
 #Reading Drivers Performance data prepared for modeling with features
-driverRaceDF= spark.read.csv('s3://group3-gr5069/processed/driver_race_results_mod_feat.csv', header=True, inferSchema=True)
-driverRaceDF = driverRaceDF.drop('_c0')
+driverRaceFeat= spark.read.csv('s3://group3-gr5069/processed/driver_race_results_mod_feat.csv', header=True, inferSchema=True)
+driverRaceFeat = driverRaceFeat.drop('_c0')
 
 #Line of code to check data quality when needed
 #driverRaceDF.select('avg_raceDur').withColumn('isNull_c',psf.col('avg_raceDur').isNull()).where('isNull_c = True').count()
@@ -50,9 +50,15 @@ driverRaceDF = driverRaceDF.drop('_c0')
 #driverRaceDF = driverRaceDF.drop("positionOrder","finishPosition")
 
 
-driverRaceDF = driverRaceDF.select('raceId', 'driverId', 'constructorId', 'resultId', 'gridPosition','driverRacePoints', 'driverStPosition',
-                            'driverSeasonPoints', 'driverSeasonWins', 'raceYear', 'constStPosition','constSeasonPoints', 'constSeasonWins', 
-                            'drivSecPos')
+driverRaceDF = driverRaceFeat.select.('resultId', 'raceYear',
+                                      'driverRacePoints', 'driverSeasonPoints', 'driverSeasonWins',
+                                      'constSeasonPoints', 'constSeasonWins', 
+                                     'drivSecPosRM1','drivSecPosRM2','drivSecPosRM3', 'drivSecPos')
+
+
+# ('raceId', 'driverId', 'constructorId', 'resultId', 'raceYear', 'gridPosition','driverRacePoints', 'driverStPosition',
+#                                     'driverSeasonPoints', 'driverSeasonWins', 'constStPosition','constSeasonPoints', 'constSeasonWins', 
+#                                     'drivSecPosRM1','drivSecPosRM2','drivSecPosRM3', 'drivSecPos')
 
 # COMMAND ----------
 
@@ -68,8 +74,10 @@ driverRaceDF = driverRaceDF.select('raceId', 'driverId', 'constructorId', 'resul
 # COMMAND ----------
 
 ## Transforming a selection of features into a vector using VectorAssembler.
-vecAssembler = VectorAssembler(inputCols = ['raceId', 'driverId', 'constructorId', 'resultId', 'gridPosition','driverRacePoints', 'driverStPosition',
-                                            'driverSeasonPoints', 'driverSeasonWins', 'constStPosition','constSeasonPoints', 'constSeasonWins'], outputCol = "vectorized_features")
+vecAssembler = VectorAssembler(inputCols = ['resultId', 'raceYear',
+                                            'driverRacePoints', 'driverSeasonPoints', 'driverSeasonWins',
+                                            'constSeasonPoints', 'constSeasonWins', 
+                                            'drivSecPosRM1','drivSecPosRM2','drivSecPosRM3'], outputCol = "vectorized_features")
 
 #
 driverRaceDF = vecAssembler.transform(driverRaceDF)
@@ -117,18 +125,139 @@ driverRaceDF=label_indexer_model.transform(driverRaceDF)
 # COMMAND ----------
 
 #Splitting the data frame into Train and Test data based on the requirements of the Project and converting them to Pandas Dataframes
-driverRaceTrainDF = driverRaceDF.filter(driverRaceDF.raceYear <= 2010)
-driverRaceTestDF = driverRaceDF.filter(driverRaceDF.raceYear > 2010)
+driverRaceDF = driverRaceDF.filter(driverRaceDF.raceYear <= 2010)
+
+driverRaceTrainDF, driverRaceTestDF = driverRaceDF.randomSplit([0.8,0.2], seed=2018)
+
+# COMMAND ----------
+
+driverRaceTrainDF.groupby('label').count().show()
+
+# COMMAND ----------
+
+driverRaceTestDF.groupby('label').count().show()
 
 # COMMAND ----------
 
 # MAGIC %md 
-# MAGIC ## Model Training
+# MAGIC ## Model Training with ML FLow
 
 # COMMAND ----------
 
-logr = LogisticRegression(featuresCol ='vectorized_features', labelCol = "drivSecPos", maxIter=5)
-logrModel = logr.fit(driverRaceTrainDF)
+# Enable autolog()
+# mlflow.sklearn.autolog() requires mlflow 1.11.0 or above.
+mlflow.sklearn.autolog()
+
+# With autolog() enabled, all model parameters, a model score, and the fitted model are automatically logged.  
+with mlflow.start_run():
+  
+  logr = LogisticRegression(featuresCol ='vectorized_features', labelCol = "drivSecPos", maxIter=20)
+  logrModel = logr.fit(driverRaceTrainDF)
+  
+  #
+  predictions = logrModel.transform(driverRaceTestDF)
+  
+  #
+  evaluator= BinaryClassificationEvaluator()
+  
+  #
+  trainingSummary = logrModel.summary
+  
+  # Create metrics
+  #objectiveHistory = trainingSummary.objectiveHistory
+  accuracy = trainingSummary.accuracy
+  falsePositiveRate = trainingSummary.weightedFalsePositiveRate
+  truePositiveRate = trainingSummary.weightedTruePositiveRate
+  fMeasure = trainingSummary.weightedFMeasure()
+  precision = trainingSummary.weightedPrecision
+  recall = trainingSummary.weightedRecall
+  areaUnderROC = trainingSummary.areaUnderROC
+  testAreaUnderROC = evaluator.evaluate(predictions)
+  
+  # Log metrics
+  #mlflow.log_metric("objectiveHistory", objectiveHistory)
+  mlflow.log_metric("accuracy", accuracy)
+  mlflow.log_metric("falsePositiveRate", falsePositiveRate)
+  mlflow.log_metric("truePositiveRate", truePositiveRate)
+  mlflow.log_metric("fMeasure", fMeasure)
+  mlflow.log_metric("precision", precision)
+  mlflow.log_metric("recall", recall)
+  mlflow.log_metric("areaUnderROC", areaUnderROC)
+  mlflow.log_metric("testAreaUnderROC", testAreaUnderROC)
+  
+  # Collecting the Feature Importance through Model Coefficients
+  importance = pd.DataFrame(list(zip(driverRaceTrainDF.columns, logrModel.coefficients)), 
+                            columns=["Feature", "Importance"]
+                          ).sort_values("Importance", ascending=False)
+  
+  # Log importances using a temporary file
+  temp = tempfile.NamedTemporaryFile(prefix="feature-importance-", suffix=".csv")
+  temp_name = temp.name
+  try:
+    importance.to_csv(temp_name, index=False)
+    mlflow.log_artifact(temp_name, "feature-importance.csv")
+  finally:
+    temp.close() # Delete the temp file
+  
+  #Create ROC plot
+  roc = trainingSummary.roc.toPandas()
+  plt.plot(roc['FPR'],roc['TPR'])
+  plt.ylabel('False Positive Rate')
+  plt.xlabel('True Positive Rate')
+  plt.title('ROC Curve')
+  
+  # Log ROC plot using a temporary file
+  temp = tempfile.NamedTemporaryFile(prefix="ROC-Curve", suffix=".png")
+  temp_name = temp.name
+  try:
+    plt.savefig(temp_name)
+    mlflow.log_artifact(temp_name, "ROC-Curve.png")
+  finally:
+    temp.close() # Delete the temp file
+  plt.show()
+  
+  #Create Beta-Coeff plot
+  beta = np.sort(logrModel.coefficients)
+  plt.plot(beta)
+  plt.ylabel('Beta Coefficients')
+  plt.title('Beta Coefficients Graph')
+  
+  # Log Beta-Coeff plot using a temporary file
+  temp = tempfile.NamedTemporaryFile(prefix="Beta-Coeff", suffix=".png")
+  temp_name = temp.name
+  try:
+    plt.savefig(temp_name)
+    mlflow.log_artifact(temp_name, "Beta-Coeff.png")
+  finally:
+    temp.close() # Delete the temp file
+  plt.show()
+  
+  #Create Precision-Recall plot
+  pr = trainingSummary.pr.toPandas()
+  plt.plot(pr['recall'],pr['precision'])
+  plt.ylabel('Precision')
+  plt.xlabel('Recall')
+  plt.title('Precision-Recall Curve')
+  
+  # Log Precision-Recall plot using a temporary file
+  temp = tempfile.NamedTemporaryFile(prefix="Precision-Recall", suffix=".png")
+  temp_name = temp.name
+  try:
+    plt.savefig(temp_name)
+    mlflow.log_artifact(temp_name, "Precision-Recall.png")
+  finally:
+    temp.close() # Delete the temp file
+  plt.show()
+  
+  print('Training set areaUnderROC: ' + str(trainingSummary.areaUnderROC))
+
+# COMMAND ----------
+
+logrModel.coefficients
+
+# COMMAND ----------
+
+trainingSummary.pValues
 
 # COMMAND ----------
 
@@ -152,14 +281,41 @@ print("Accuracy : ",accuracy)
 
 # COMMAND ----------
 
-trainingSummary = logrModel.summary
-roc = trainingSummary.roc.toPandas()
-plt.plot(roc['FPR'],roc['TPR'])
-plt.ylabel('False Positive Rate')
-plt.xlabel('True Positive Rate')
-plt.title('ROC Curve')
-plt.show()
-print('Training set areaUnderROC: ' + str(trainingSummary.areaUnderROC))
+# Obtain the objective per iteration
+objectiveHistory = trainingSummary.objectiveHistory
+print("objectiveHistory:")
+for objective in objectiveHistory:
+    print(objective)
+
+# for multiclass, we can inspect metrics on a per-label basis
+print("False positive rate by label:")
+for i, rate in enumerate(trainingSummary.falsePositiveRateByLabel):
+    print("label %d: %s" % (i, rate))
+
+print("True positive rate by label:")
+for i, rate in enumerate(trainingSummary.truePositiveRateByLabel):
+    print("label %d: %s" % (i, rate))
+
+print("Precision by label:")
+for i, prec in enumerate(trainingSummary.precisionByLabel):
+    print("label %d: %s" % (i, prec))
+
+print("Recall by label:")
+for i, rec in enumerate(trainingSummary.recallByLabel):
+    print("label %d: %s" % (i, rec))
+
+print("F-measure by label:")
+for i, f in enumerate(trainingSummary.fMeasureByLabel()):
+    print("label %d: %s" % (i, f))
+
+accuracy = trainingSummary.accuracy
+falsePositiveRate = trainingSummary.weightedFalsePositiveRate
+truePositiveRate = trainingSummary.weightedTruePositiveRate
+fMeasure = trainingSummary.weightedFMeasure()
+precision = trainingSummary.weightedPrecision
+recall = trainingSummary.weightedRecall
+print("Accuracy: %s\nFPR: %s\nTPR: %s\nF-measure: %s\nPrecision: %s\nRecall: %s"
+      % (accuracy, falsePositiveRate, truePositiveRate, fMeasure, precision, recall))
 
 # COMMAND ----------
 
@@ -193,7 +349,11 @@ driverRaceDF.toPandas().head()
 
 # COMMAND ----------
 
-driverRaceTrainDF.display()
+driverRaceDF.display()
+
+# COMMAND ----------
+
+driverRaceFeat.columns
 
 # COMMAND ----------
 
