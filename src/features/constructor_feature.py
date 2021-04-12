@@ -99,13 +99,12 @@ df_2.head()
 
 # COMMAND ----------
 
-df_x = df_2.merge(df_x, how = 'left', on = ['year'])
+df_x = df_2.merge(df_11, how = 'left', on = ['year', 'constructorId'])
 df_x.head()
 
 # COMMAND ----------
 
-df_x['participation'] = df_x['participation'].replace(np.nan, 0)
-df_x['avgpoints_c'] = df_x['avgpoints_c'].replace(np.nan, 0)
+df_x= df_x.fillna(0)
 
 # COMMAND ----------
 
