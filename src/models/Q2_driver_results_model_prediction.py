@@ -58,11 +58,33 @@ driverRaceDF = driverRaceDF.withColumn('drivSecPosCat', driverRaceDF['drivSecPos
 # COMMAND ----------
 
 ## Transforming a selection of features into a vector using VectorAssembler.
-vecAssembler = VectorAssembler(inputCols = ['resultId', 'raceYear','constructorId','raceId','driverStPosition','gridPosition'
+vecAssembler = VectorAssembler(inputCols = ['resultId', 'raceYear','constructorId','raceId','driverStPosition','gridPosition',
                                              'driverSeasonPoints', 'driverSeasonWins',
                                             'constSeasonPoints', 'constSeasonWins', 
                                             'drivSecPosRM1','drivSecPosRM2','drivSecPosRM3'], outputCol = "vectorized_features")
 driverRaceDF = vecAssembler.transform(driverRaceDF)
+
+# COMMAND ----------
+
+## 
+scaler = StandardScaler()\
+         .setInputCol('vectorized_features')\
+         .setOutputCol('features')
+
+scaler_model = scaler.fit(driverRaceDF)
+
+#
+driverRaceDF = scaler_model.transform(driverRaceDF)
+
+# COMMAND ----------
+
+## 
+label_indexer = StringIndexer()\
+         .setInputCol ("drivSecPos")\
+         .setOutputCol ("label")
+
+label_indexer_model=label_indexer.fit(driverRaceDF)
+driverRaceDF=label_indexer_model.transform(driverRaceDF)
 
 # COMMAND ----------
 
@@ -72,9 +94,13 @@ driverRaceTestDF = driverRaceDF.filter(driverRaceDF.raceYear > 2010)
 
 # COMMAND ----------
 
+driverRaceTrainDF.groupby('label').count().show()
+
+# COMMAND ----------
+
 # Converting the Spark Dataframes into Pandas Dataframes
-driverRaceTrainDF =driverRaceTrainDF.select("*").toPandas()
-driverRaceTestDF =driverRaceTestDF.select("*").toPandas()
+#driverRaceTrainDF =driverRaceTrainDF.select("*").toPandas()
+#driverRaceTestDF =driverRaceTestDF.select("*").toPandas()
 
 # COMMAND ----------
 
