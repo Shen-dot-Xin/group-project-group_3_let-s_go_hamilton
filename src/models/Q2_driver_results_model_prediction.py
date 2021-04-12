@@ -31,6 +31,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.datasets import load_diabetes
 
 from sklearn.ensemble import RandomForestRegressor
+from pyspark.ml.feature import VectorAssembler,StandardScaler,StringIndexer
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 from sklearn.model_selection import train_test_split
 
@@ -53,6 +54,15 @@ driverRaceDF = driverRaceDF.drop("totPitstopDur","avgPitstopDur","countPitstops"
 # Dropping similar columns to target variables
 driverRaceDF = driverRaceDF.drop("positionOrder","driverRacePoints")
 driverRaceDF = driverRaceDF.withColumn('drivSecPosCat', driverRaceDF['drivSecPosCat'].cast(DoubleType()))
+
+# COMMAND ----------
+
+## Transforming a selection of features into a vector using VectorAssembler.
+vecAssembler = VectorAssembler(inputCols = ['resultId', 'raceYear','constructorId','raceId','driverStPosition','gridPosition'
+                                             'driverSeasonPoints', 'driverSeasonWins',
+                                            'constSeasonPoints', 'constSeasonWins', 
+                                            'drivSecPosRM1','drivSecPosRM2','drivSecPosRM3'], outputCol = "vectorized_features")
+driverRaceDF = vecAssembler.transform(driverRaceDF)
 
 # COMMAND ----------
 
