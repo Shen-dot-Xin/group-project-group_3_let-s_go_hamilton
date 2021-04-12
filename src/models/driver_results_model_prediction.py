@@ -99,15 +99,20 @@ driverRaceTrainDF.groupby('label').count().show()
 # COMMAND ----------
 
 # Converting the Spark Dataframes into Pandas Dataframes
-driverRaceTrainDF =driverRaceTrainDF.select("*").toPandas()
-driverRaceTestDF =driverRaceTestDF.select("*").toPandas()
+#driverRaceTrainDF =driverRaceTrainDF.select("*").toPandas()
+#driverRaceTestDF =driverRaceTestDF.select("*").toPandas()
 
 # COMMAND ----------
 
-X_train = driverRaceTrainDF.drop(['finishPosition'], axis=1)
-X_test = driverRaceTestDF.drop(['finishPosition'], axis=1)
-y_train = driverRaceTrainDF['finishPosition']
-y_test = driverRaceTestDF['finishPosition']
+#X_train = driverRaceTrainDF.drop(['finishPosition'], axis=1)
+#X_test = driverRaceTestDF.drop(['finishPosition'], axis=1)
+#y_train = driverRaceTrainDF['finishPosition']
+#y_test = driverRaceTestDF['finishPosition']
+
+# COMMAND ----------
+
+import sklearn
+print(sklearn.__version__)
 
 # COMMAND ----------
 
@@ -120,17 +125,17 @@ mlflow.sklearn.autolog()
 # With autolog() enabled, all model parameters, a model score, and the fitted model are automatically logged.  
 with mlflow.start_run():
   
-  logr = LogisticRegression(featuresCol ='vectorized_features', labelCol = "drivSecPos", maxIter=20)
-  logrModel = logr.fit(driverRaceTrainDF)
+  rf = RandomForestRegressor(featuresCol="vectorized_features", labelCol = "drivSecPos", numTrees=1000, maxDepth = 10)
+  rfModel = rf.fit(driverRaceTrainDF)
   
   #
-  predictions = logrModel.transform(driverRaceTestDF)
+  predictions = rfModel.transform(driverRaceTestDF)
   
   #
   evaluator= BinaryClassificationEvaluator()
   
   #
-  trainingSummary = logrModel.summary
+  trainingSummary = rfModel.summary
   
   # Create metrics
   #objectiveHistory = trainingSummary.objectiveHistory
