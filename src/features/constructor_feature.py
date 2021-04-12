@@ -68,14 +68,22 @@ df_cc.head()
 
 # COMMAND ----------
 
-df_1 = df[['raceId','year', 'circuitId']]
+df_1 = df_cc.merge(df[['raceId', 'circuitId']].drop_duplicates(), how = 'left', on = 'raceId')
+df_1.head()
 
 # COMMAND ----------
 
-#get a series of dummy variables
+df_11 = df_1.pivot_table(values=['wins'], index=['year', 'constructorId'], columns='circuitId')
+df_11.columns =['gp_' + str(s2) for (s1,s2) in df_11.columns.tolist()]
+df_11= df_11.fillna(0).reset_index()
+df_11.head()
+
+# COMMAND ----------
+
+'''get a series of dummy variables
 df_x = pd.concat([df_1['year'], pd.get_dummies(df_1['circuitId'], prefix="gp")],  axis = 1 )
 df_x = df_x.drop_duplicates(subset=['year'], keep='first', inplace=False).reset_index(drop = True)
-df_x.head()
+df_x.head()'''
 
 # COMMAND ----------
 
