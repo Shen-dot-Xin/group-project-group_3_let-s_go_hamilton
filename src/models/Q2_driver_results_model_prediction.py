@@ -19,6 +19,7 @@ import numpy as np
 from datetime import datetime
 import seaborn as sns
 import tempfile
+from pyspark.sql.types import DoubleType
 
 import matplotlib.pyplot as plt
 
@@ -51,6 +52,7 @@ driverRaceDF = driverRaceDF.drop("totPitstopDur","avgPitstopDur","countPitstops"
 
 # Dropping similar columns to target variables
 driverRaceDF = driverRaceDF.drop("positionOrder","driverRacePoints")
+driverRaceDF = driverRaceDF.withColumn('drivSecPosCat', driverRaceDF['drivSecPosCat'].cast(DoubleType()))
 
 # COMMAND ----------
 
