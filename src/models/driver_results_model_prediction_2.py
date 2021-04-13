@@ -52,8 +52,8 @@ driverRaceDF = driverRaceDF.drop("totPitstopDur","avgPitstopDur","countPitstops"
 # COMMAND ----------
 
 # Dropping similar columns to target variables
-driverRaceDF = driverRaceDF.drop("positionOrder","driverRacePoints")
-driverRaceDF = driverRaceDF.withColumn('drivSecPosCat', driverRaceDF['drivSecPosCat'].cast(DoubleType()))
+driverRaceDF = driverRaceDF.drop("positionOrder","driverRacePoints","drivSecPosCat")
+#driverRaceDF = driverRaceDF.withColumn('drivSecPosCat', driverRaceDF['drivSecPosCat'].cast(DoubleType()))
 
 # COMMAND ----------
 
@@ -108,6 +108,8 @@ X_train = driverRaceTrainDF.drop(['finishPosition'], axis=1)
 X_test = driverRaceTestDF.drop(['finishPosition'], axis=1)
 y_train = driverRaceTrainDF['finishPosition']
 y_test = driverRaceTestDF['finishPosition']
+
+display(X_train)
 
 # COMMAND ----------
 
@@ -173,7 +175,7 @@ def log_rf(experimentID, run_name, params, X_train, X_test, y_train, y_test):
     mlflow.log_metric("r2", r2)  
     
     # Create feature importance
-    importance = pd.DataFrame(list(zip(df.columns, rf.feature_importances_)), 
+    importance = pd.DataFrame(list(zip(driverRaceDF.columns, rf.feature_importances_)), 
                                 columns=["Feature", "Importance"]
                               ).sort_values("Importance", ascending=False)
     
