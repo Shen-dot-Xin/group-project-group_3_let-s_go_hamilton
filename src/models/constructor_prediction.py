@@ -13,6 +13,20 @@ from pyspark.ml.feature import VectorAssembler, Normalizer, StandardScaler
 from pyspark.sql import Window
 from pyspark.sql.functions import lag, col, asc, min, max
 
+import pandas as pd
+import numpy as np
+import os
+import boto3
+
+# COMMAND ----------
+
+import warnings
+warnings.simplefilter(action='ignore')
+
+import logging
+logger = logging.getLogger()
+logger.setLevel(logging.CRITICAL)
+
 # COMMAND ----------
 
 df = spark.read.csv('s3://group3-gr5069/interim/constructor_features.csv', header = True, inferSchema = True)
@@ -308,6 +322,112 @@ predDF_final.write.format('jdbc').options(
       dbtable='test_lr_preds',
       user='admin',
       password='Xs19980312!').mode('overwrite').save()
+
+# COMMAND ----------
+
+# MAGIC %md #### SVC Model
+
+# COMMAND ----------
+
+s3 = boto3.client('s3')
+bucket = "group3-gr5069"
+
+c = "interim/constructor_features.csv"
+
+obj = s3.get_object(Bucket= bucket, Key= c)
+data = pd.read_csv(obj['Body'])
+data = data[(data['year']>=1950) & (data['year']<=2017)]
+df = data.fillna(0)
+df.head() 
+
+# COMMAND ----------
+
+#split training and test dataset, the former using data between 1950-2010, the later contains data between 2011-2017
+y = df[['champion','year']]
+X = df.loc[:, ['race_count', 'lag1_avg', 'lag2_avg', 'lag1_ptc', 'lag2_ptc', 'lag1_pst', 'lag2_pst', 'unique_drivers', 'avg_fastestspeed', 'avg_fastestlap', 'year']]
+X_train = X[(X['year']<=2010)]
+X_test = X[(X['year']>=2011) & (X['year']<=2017)]
+y_train = y[(y['year']<=2010)]
+y_test = y[(y['year']>=2011) & (y['year']<=2017)]
+X_train = X_train.drop(['year'], axis=1)
+X_test = X_test.drop(['year'], axis=1)
+y_train = y_train.drop(['year'], axis=1)
+y_test = y_test.drop(['year'], axis=1)
+X_test
+
+# COMMAND ----------
+
+#set KFold and use GridSearchCV to find the best paramater for SVC model
+from sklearn.model_selection import KFold
+kfold = KFold(n_splits=5)
+
+from sklearn.model_selection import GridSearchCV
+from sklearn.svm import SVC
+
+hyper_param = {'C': [0.1, 1, 10, 100, 1000]}
+
+SVC_model = SVC()
+model= GridSearchCV(SVC_model, hyper_param, cv = kfold)
+model.fit(X_train, y_train.values.ravel())
+
+print("Best Parameters", model.best_params_)
+
+# COMMAND ----------
+
+from sklearn.model_selection import cross_val_score
+svc = SVC(kernel='linear', C=0.1).fit(X_train, y_train) 
+
+print("SVC") 
+print("Test set score: {:.2f}".format(svc.score(X_test, y_test)))
+
+# Kfold cross validation
+print("Mean Cross-Validation, Kfold: {:.2f}".format(np.mean(cross_val_score(svc, X_train, y_train, cv=kfold))))
+
+svc_accurancy = np.mean(cross_val_score(svc, X_train, y_train, cv=kfold))
+
+# COMMAND ----------
+
+# MAGIC %md #### Compare SVC and logistic models
+
+# COMMAND ----------
+
+#use logistic model with normalized data
+from sklearn.linear_model import LogisticRegression
+from sklearn import preprocessing
+hyperparameters = {'C':np.logspace(1, 10, 100)}
+
+scaler = preprocessing.StandardScaler().fit(X_train)
+X_train_s = scaler.transform(X_train)
+X_test_s = scaler.transform(X_test)
+
+logit = LogisticRegression()
+model= GridSearchCV(logit, hyperparameters, cv = kfold)
+model.fit(X_train_s, y_train.values.ravel())
+
+print("Best Parameters", model.best_params_)
+
+# COMMAND ----------
+
+logreg = LogisticRegression(C=10).fit(X_train, y_train)
+
+print("LOGREG for REGRESSION")
+
+#test and training score
+print("Training set score: {:.2f}".format(logreg.score(X_train_s, y_train)))
+print("Test set score: {:.2f}".format(logreg.score(X_test_s, y_test)))
+
+#Kfold cross validation
+print("Mean Cross-Validation, Kfold: {:.2f}".format(np.mean(cross_val_score(logreg, X_train_s, y_train, cv=kfold))))
+logreg_accurancy = np.mean(cross_val_score(logreg, X_train_s, y_train, cv=kfold))
+
+# COMMAND ----------
+
+print("SVC")
+print("Accuracy: {:.2f}".format(svc_accurancy))
+print("Logistic")
+print("Accuracy: {:.2f}".format(logreg_accurancy))
+
+#The mean cross validation score shows that the accurancy of svc model and logistic model are the same. While the test set score of Logistic regression model is higher than that of SVC model(0.94 vs 0.91).Therefore, we choose the logistic regression model to do the prediction and save the output to a database.
 
 # COMMAND ----------
 
