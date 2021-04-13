@@ -383,7 +383,7 @@ print("Test set score: {:.2f}".format(svc.score(X_test, y_test)))
 # Kfold cross validation
 print("Mean Cross-Validation, Kfold: {:.2f}".format(np.mean(cross_val_score(svc, X_train, y_train, cv=kfold))))
 
-svc_accurancy = np.mean(cross_val_score(svc, X_train, y_train, cv=kfold))
+svc_accuracy = np.mean(cross_val_score(svc, X_train, y_train, cv=kfold))
 
 # COMMAND ----------
 
@@ -418,7 +418,7 @@ print("Test set score: {:.2f}".format(logreg.score(X_test_s, y_test)))
 
 #Kfold cross validation
 print("Mean Cross-Validation, Kfold: {:.2f}".format(np.mean(cross_val_score(logreg, X_train_s, y_train, cv=kfold))))
-logreg_accurancy = np.mean(cross_val_score(logreg, X_train_s, y_train, cv=kfold))
+logreg_accuracy = np.mean(cross_val_score(logreg, X_train_s, y_train, cv=kfold))
 
 # COMMAND ----------
 
@@ -427,7 +427,7 @@ print("Accuracy: {:.2f}".format(svc_accurancy))
 print("Logistic")
 print("Accuracy: {:.2f}".format(logreg_accurancy))
 
-#The mean cross validation score shows that the accurancy of svc model and logistic model are the same. While the test set score of Logistic regression model is higher than that of SVC model(0.94 vs 0.91).Therefore, we choose the logistic regression model to do the prediction and save the output to a database.
+#The mean cross validation score shows that the accuracy of svc model and logistic model are the same. While the test set score of Logistic regression model is higher than that of SVC model(0.94 vs 0.91).Therefore, we choose the logistic regression model to do the prediction and save the output to a database.
 
 # COMMAND ----------
 
