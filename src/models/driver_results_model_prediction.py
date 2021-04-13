@@ -52,8 +52,8 @@ driverRaceDF = driverRaceDF.drop("totPitstopDur","avgPitstopDur","countPitstops"
 # COMMAND ----------
 
 # Dropping similar columns to target variables
-driverRaceDF = driverRaceDF.drop("positionOrder","driverRacePoints")
-driverRaceDF = driverRaceDF.withColumn('drivSecPosCat', driverRaceDF['drivSecPosCat'].cast(DoubleType()))
+driverRaceDF = driverRaceDF.drop("positionOrder","driverRacePoints",'drivSecPosCat')
+#driverRaceDF = driverRaceDF.withColumn('drivSecPosCat', driverRaceDF['drivSecPosCat'].cast(DoubleType()))
 
 # COMMAND ----------
 
@@ -125,9 +125,9 @@ mlflow.sklearn.autolog()
 # With autolog() enabled, all model parameters, a model score, and the fitted model are automatically logged.  
 with mlflow.start_run():
   
-  rf = RandomForestRegressor(featuresCol="vectorized_features", labelCol = "drivSecPos", numTrees=1000, maxDepth = 10)
-  rfModel = rf.fit(driverRaceTrainDF)
-  
+  rf = RandomForestRegressor(featuresCol="vectorized_features", labelCol = "drivSecPos", numTrees=1000,maxDepth = 10 )
+  logrModel = rf.fit(driverRaceTrainDF)
+  #numTrees=1000, maxDepth = 10
   #
   predictions = rfModel.transform(driverRaceTestDF)
   
