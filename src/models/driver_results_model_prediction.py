@@ -31,6 +31,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.datasets import load_diabetes
 
 from pyspark.ml.regression import RandomForestRegressor 
+from pyspark.ml.classification import RandomForestClassifier
 #from sklearn.ensemble import RandomForestRegressor
 from pyspark.ml.feature import VectorAssembler,StandardScaler,StringIndexer
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
@@ -126,7 +127,7 @@ mlflow.sklearn.autolog()
 # With autolog() enabled, all model parameters, a model score, and the fitted model are automatically logged.  
 with mlflow.start_run():
   
-  rf = RandomForestRegressor(featuresCol="vectorized_features", labelCol = "drivSecPos", numTrees=1000,maxDepth = 10 )
+  rf = RandomForestClassifier(featuresCol="vectorized_features", labelCol = "drivSecPos", numTrees=1000,maxDepth = 10 )
   rfModel = rf.fit(driverRaceTrainDF)
   #numTrees=1000, maxDepth = 10
   #
