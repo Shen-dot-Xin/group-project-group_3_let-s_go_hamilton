@@ -30,7 +30,8 @@ import mlflow.sklearn
 from sklearn.model_selection import train_test_split
 from sklearn.datasets import load_diabetes
 
-from sklearn.ensemble import RandomForestRegressor
+from pyspark.ml.regression import RandomForestRegressor 
+#from sklearn.ensemble import RandomForestRegressor
 from pyspark.ml.feature import VectorAssembler,StandardScaler,StringIndexer
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 from sklearn.model_selection import train_test_split
@@ -126,7 +127,7 @@ mlflow.sklearn.autolog()
 with mlflow.start_run():
   
   rf = RandomForestRegressor(featuresCol="vectorized_features", labelCol = "drivSecPos", numTrees=1000,maxDepth = 10 )
-  logrModel = rf.fit(driverRaceTrainDF)
+  rfModel = rf.fit(driverRaceTrainDF)
   #numTrees=1000, maxDepth = 10
   #
   predictions = rfModel.transform(driverRaceTestDF)
@@ -160,7 +161,7 @@ with mlflow.start_run():
   mlflow.log_metric("testAreaUnderROC", testAreaUnderROC)
   
   # Collecting the Feature Importance through Model Coefficients
-  importance = pd.DataFrame(list(zip(driverRaceTrainDF.columns, logrModel.coefficients)), 
+  importance = pd.DataFrame(list(zip(driverRaceTrainDF.columns, rfModel.coefficients)), 
                             columns=["Feature", "Importance"]
                           ).sort_values("Importance", ascending=False)
   
