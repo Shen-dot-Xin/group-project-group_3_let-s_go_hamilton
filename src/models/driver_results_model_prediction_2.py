@@ -9,7 +9,7 @@
 
 #Loading required Functions and Packages
 from pyspark.sql import Window
-from pyspark.sql.functions import datediff, current_date, avg, col, round, upper, max, min, lit, sum, countDistinct, concat
+from pyspark.sql.functions import datediff, current_date, avg, col, round, upper, max, min, lit, sum, countDistinct, concat,when
 import pyspark.sql.functions as psf
 from pyspark.sql.types import IntegerType
 import numpy as np
@@ -37,10 +37,26 @@ from sklearn.model_selection import train_test_split
 
 # COMMAND ----------
 
+#Reading Drivers data
+drivers = spark.read.csv('s3://columbia-gr5069-main/raw/drivers.csv', header=True, inferSchema=True)
+
+#Reading Races data
+races = spark.read.csv('s3://columbia-gr5069-main/raw/races.csv', header=True, inferSchema=True)
+
+#Reading Constructors data
+constructors = spark.read.csv('s3://columbia-gr5069-main/raw/constructors.csv', header=True, inferSchema=True)
+
+
+# COMMAND ----------
+
 #Reading Drivers Performance data prepared for modeling with features
 driverRaceDF= spark.read.csv('s3://group3-gr5069/processed/driver_race_results_mod_feat.csv', header=True, inferSchema=True)
 driverRaceDF = driverRaceDF.drop('_c0')
 
+driverRaceDF = driverRaceDF.withColumn("finishPosition", when(driverRaceDF["finishPosition"] == 999, 20).otherwise(driverRaceDF["finishPosition"]))
+driverRaceDF = driverRaceDF.withColumn("finishPositionRM1", when(driverRaceDF["finishPositionRM1"] == 999, 20).otherwise(driverRaceDF["finishPositionRM1"]))  
+driverRaceDF = driverRaceDF.withColumn("finishPositionRM2", when(driverRaceDF["finishPositionRM2"] == 999, 20).otherwise(driverRaceDF["finishPositionRM2"]))  
+driverRaceDF = driverRaceDF.withColumn("finishPositionRM3", when(driverRaceDF["finishPositionRM3"] == 999, 20).otherwise(driverRaceDF["finishPositionRM3"]))
 #Line of code to check data quality when needed
 #driverRaceDF.select('avg_raceDur').withColumn('isNull_c',psf.col('avg_raceDur').isNull()).where('isNull_c = True').count()
 
@@ -52,49 +68,17 @@ driverRaceDF = driverRaceDF.drop("totPitstopDur","avgPitstopDur","countPitstops"
 # COMMAND ----------
 
 # Dropping similar columns to target variables
-driverRaceDF = driverRaceDF.drop("positionOrder","driverRacePoints","drivSecPosCat")
+driverRaceDF = driverRaceDF.drop("positionOrder","driverRacePoints","drivSecPosCat","raceLaps","driverSeasonPoints","drivSecPos","drivSecPosRM3","drivSecPosRM2","drivSecPosRM1")
 #driverRaceDF = driverRaceDF.withColumn('drivSecPosCat', driverRaceDF['drivSecPosCat'].cast(DoubleType()))
-
-# COMMAND ----------
-
-## Transforming a selection of features into a vector using VectorAssembler.
-vecAssembler = VectorAssembler(inputCols = ['resultId', 'raceYear','constructorId','raceId','driverStPosition','gridPosition',
-                                             'driverSeasonPoints', 'driverSeasonWins',
-                                            'constSeasonPoints', 'constSeasonWins', 
-                                            'drivSecPosRM1','drivSecPosRM2','drivSecPosRM3'], outputCol = "vectorized_features")
-driverRaceDF = vecAssembler.transform(driverRaceDF)
-
-# COMMAND ----------
-
-## 
-scaler = StandardScaler()\
-         .setInputCol('vectorized_features')\
-         .setOutputCol('features')
-
-scaler_model = scaler.fit(driverRaceDF)
-
-#
-driverRaceDF = scaler_model.transform(driverRaceDF)
-
-# COMMAND ----------
-
-## 
-label_indexer = StringIndexer()\
-         .setInputCol ("drivSecPos")\
-         .setOutputCol ("label")
-
-label_indexer_model=label_indexer.fit(driverRaceDF)
-driverRaceDF=label_indexer_model.transform(driverRaceDF)
 
 # COMMAND ----------
 
 #Splitting the data frame into Train and Test data based on the requirements of the Project
 driverRaceTrainDF = driverRaceDF.filter(driverRaceDF.raceYear <= 2010)
+
+#Test data according to the question
 driverRaceTestDF = driverRaceDF.filter(driverRaceDF.raceYear > 2010)
-
-# COMMAND ----------
-
-driverRaceTrainDF.groupby('label').count().show()
+driverRaceTestDF = driverRaceTestDF.filter(driverRaceTestDF.raceYear < 2018)
 
 # COMMAND ----------
 
@@ -109,118 +93,8 @@ X_test = driverRaceTestDF.drop(['finishPosition'], axis=1)
 y_train = driverRaceTrainDF['finishPosition']
 y_test = driverRaceTestDF['finishPosition']
 
-display(X_train)
-
 # COMMAND ----------
 
-import mlflow.sklearn
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.metrics import mean_squared_error
-
-with mlflow.start_run(run_name="Basic RF Experiment") as run:
-  # Create model, train it, and create predictions
-  rf = RandomForestRegressor()
-  rf.fit(X_train, y_train)
-  predictions = rf.predict(X_test)
-  
-  # Log model
-  mlflow.sklearn.log_model(rf, "random-forest-model")
-  
-  # Create metrics
-  mse = mean_squared_error(y_test, predictions)
-  print("  mse: {}".format(mse))
-  
-  # Log metrics
-  mlflow.log_metric("mse", mse)
-  
-  runID = run.info.run_uuid
-  experimentID = run.info.experiment_id
-  
-  print("Inside MLflow Run with run_id {} and experiment_id {}".format(runID, experimentID))
-
-# COMMAND ----------
-
-def log_rf(experimentID, run_name, params, X_train, X_test, y_train, y_test):
-  import os
-  import matplotlib.pyplot as plt
-  import mlflow.sklearn
-  import seaborn as sns
-  from sklearn.ensemble import RandomForestRegressor
-  from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
-  import tempfile
-
-  with mlflow.start_run(experiment_id=experimentID, run_name=run_name) as run:
-    # Create model, train it, and create predictions
-    rf = RandomForestRegressor(**params)
-    rf.fit(X_train, y_train)
-    predictions = rf.predict(X_test)
-
-    # Log model
-    mlflow.sklearn.log_model(rf, "random-forest-model")
-
-    # Log params
-    [mlflow.log_param(param, value) for param, value in params.items()]
-
-    # Create metrics
-    mse = mean_squared_error(y_test, predictions)
-    mae = mean_absolute_error(y_test, predictions)
-    r2 = r2_score(y_test, predictions)
-    print("  mse: {}".format(mse))
-    print("  mae: {}".format(mae))
-    print("  R2: {}".format(r2))
-    
-    # Log metrics
-    mlflow.log_metric("mse", mse)
-    mlflow.log_metric("mae", mae)  
-    mlflow.log_metric("r2", r2)  
-    
-    # Create feature importance
-    importance = pd.DataFrame(list(zip(driverRaceDF.columns, rf.feature_importances_)), 
-                                columns=["Feature", "Importance"]
-                              ).sort_values("Importance", ascending=False)
-    
-    # Log importances using a temporary file
-    temp = tempfile.NamedTemporaryFile(prefix="feature-importance-", suffix=".csv")
-    temp_name = temp.name
-    try:
-      importance.to_csv(temp_name, index=False)
-      mlflow.log_artifact(temp_name, "feature-importance.csv")
-    finally:
-      temp.close() # Delete the temp file
-    
-    # Create plot
-    fig, ax = plt.subplots()
-
-    sns.residplot(predictions, y_test, lowess=True)
-    plt.xlabel("Predicted values for Price ($)")
-    plt.ylabel("Residual")
-    plt.title("Residual Plot")
-
-    # Log residuals using a temporary file
-    temp = tempfile.NamedTemporaryFile(prefix="residuals-", suffix=".png")
-    temp_name = temp.name
-    try:
-      fig.savefig(temp_name)
-      mlflow.log_artifact(temp_name, "residuals.png")
-    finally:
-      temp.close() # Delete the temp file
-      
-    display(fig)
-    return run.info.run_uuid
-
-# COMMAND ----------
-
-params = {
-  "n_estimators": 100,
-  "max_depth": 5,
-  "random_state": 42
-}
-
-log_rf(experimentID, "Second Run", params, X_train, X_test, y_train, y_test)
-
-# COMMAND ----------
-
-## Run 1 - Run Params: {n_estimators = 100; max_depth = 6; max_features = 3}
 
 # Enable autolog()
 # mlflow.sklearn.autolog() requires mlflow 1.11.0 or above.
@@ -230,9 +104,9 @@ mlflow.sklearn.autolog()
 with mlflow.start_run():
   
   # Set the model parameters. 
-  n_estimators = 100
-  max_depth = 6
-  max_features = 3
+  n_estimators = 1000
+  max_depth = 5
+  max_features = 5
   
   # Create and train model.
   rf = RandomForestRegressor(n_estimators = n_estimators, max_depth = max_depth, max_features = max_features)
@@ -272,7 +146,7 @@ with mlflow.start_run():
   fig, ax = plt.subplots()
 
   sns.residplot(predictions, y_test, lowess=True)
-  plt.xlabel("Predicted values for Price ($)")
+  plt.xlabel("Predicted Driver Position")
   plt.ylabel("Residual")
   plt.title("Residual Plot")
 
@@ -286,6 +160,44 @@ with mlflow.start_run():
     temp.close() # Delete the temp file
 
   display(fig)
+
+# COMMAND ----------
+
+driverRaceDFPred = X_test
+driverRaceDFPred['predictions'] = pd.Series(predictions, index=driverRaceDFPred.index).round(0)
+driverRaceDFPred['finishPosition'] = pd.Series(y_test, index=driverRaceDFPred.index)
+
+# COMMAND ----------
+
+driverRaceDFPred=spark.createDataFrame(driverRaceDFPred) 
+
+# COMMAND ----------
+
+driverRaceDFPred= driverRaceDFPred.join(drivers.select(col("driverId"), concat(drivers.forename,drivers.surname).alias("driverName"), col("nationality").alias("driverNat")), on=['driverId'],how="left").join(constructors.select(col("constructorId"),col("name").alias("constructorName"),col("nationality").alias("constructorNat")), on=['constructorId'], how="left").join(races.select(col("raceId"), col("name").alias("raceName"),col("round").alias("raceRound"), col("date").alias("raceDate")), on=['raceId'], how="left")
+
+# COMMAND ----------
+
+# Creating a Binary column that says if a driver finished second or not
+driverRaceDFPred = driverRaceDFPred.withColumn("drivSecPosPred", when(driverRaceDFPred.predictions==2,1) .otherwise(0))
+
+# COMMAND ----------
+
+driverRaceDFPred.write.format('jdbc').options(
+      url='jdbc:mysql://gc-gr5069.ccqalx6jsr2n.us-east-1.rds.amazonaws.com/gc2897_gr5069',
+      driver='com.mysql.jdbc.Driver',
+      dbtable='Final_Driver_Predit_Q2_G3',
+      user='admin',
+      password='12345678').mode('overwrite').save()
+
+# COMMAND ----------
+
+driverRaceDFPred_return = spark.read.format("jdbc").option("url", "jdbc:mysql://gc-gr5069.ccqalx6jsr2n.us-east-1.rds.amazonaws.com/gc2897_gr5069") \
+    .option("driver", "com.mysql.jdbc.Driver").option("dbtable", "Final_Driver_Predit_Q2_G3") \
+    .option("user", "admin").option("password", "12345678").load()
+
+# COMMAND ----------
+
+display(driverRaceDFPred_return)
 
 # COMMAND ----------
 
