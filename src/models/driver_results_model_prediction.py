@@ -30,7 +30,7 @@ import mlflow.sklearn
 from sklearn.model_selection import train_test_split
 from sklearn.datasets import load_diabetes
 
-from sklearn.ensemble import RandomForestRegressor
+from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
 from pyspark.ml.feature import VectorAssembler,StandardScaler,StringIndexer
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 from sklearn.model_selection import train_test_split
@@ -73,7 +73,8 @@ driverRaceDF = driverRaceDF.drop("totPitstopDur","avgPitstopDur","countPitstops"
 # COMMAND ----------
 
 # Dropping similar columns to target variables
-driverRaceDF = driverRaceDF.drop("positionOrder","driverRacePoints","drivSecPosCat","raceLaps","driverSeasonPoints","drivSecPos","drivSecPosRM3","drivSecPosRM2","drivSecPosRM1")
+driverRaceDF = driverRaceDF.drop("positionOrder","driverRacePoints","drivSecPosCat","raceLaps","driverSeasonPoints","drivSecPos")
+#,"drivSecPosRM3","drivSecPosRM2","drivSecPosRM1"
 #driverRaceDF = driverRaceDF.withColumn('drivSecPosCat', driverRaceDF['drivSecPosCat'].cast(DoubleType()))
 
 # COMMAND ----------
@@ -100,64 +101,15 @@ y_test = driverRaceTestDF['finishPosition']
 
 # COMMAND ----------
 
-from pyspark.ml import Pipeline
-from pyspark.ml.classification import RandomForestClassifier
-from pyspark.ml.feature import IndexToString, StringIndexer, VectorIndexer
-from pyspark.ml.evaluation import MulticlassClassificationEvaluator
-
-with mlflow.start_run():
-  # Train a RandomForest model.
-  rf = RandomForestClassifier(labelCol="drivSecPos", featuresCol="vectorized_features", numTrees=10)
-  
-  # Convert indexed labels back to original labels.
-  labelConverter = IndexToString(inputCol="prediction", outputCol="predictedLabel",
-                               labels=label_indexer_model.labels)
-  
-  # Chain indexers and forest in a Pipeline
-  pipeline = Pipeline(stages=[label_indexer_model, vecAssembler, rf, labelConverter])
-  
-  # Train model.  This also runs the indexers.
-  model = pipeline.fit(driverRaceTrainDF)
-  
-  # Make predictions.
-  predictions = model.transform(driverRaceTestDF)
-
-  # Select example rows to display.
-  predictions.select("predictedLabel", "label", "features").show(5)
-
-  # Select (prediction, true label) and compute test error
-  evaluator = MulticlassClassificationEvaluator(
-      labelCol="indexedLabel", predictionCol="prediction", metricName="accuracy")
-  accuracy = evaluator.evaluate(predictions)
-  print("Test Error = %g" % (1.0 - accuracy))
-
-  rfModel = model.stages[2]
-  print(rfModel)  # summary only
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC Model Testing (to select the best parameters)
-
-# COMMAND ----------
-
-
-# Enable autolog()
-# mlflow.sklearn.autolog() requires mlflow 1.11.0 or above.
-mlflow.sklearn.autolog()
-
-def rf_reg(run_name, params, X_train, X_test, y_train, y_test):
-# With autolog() enabled, all model parameters, a model score, and the fitted model are automatically logged.  
-  with mlflow.start_run(run_name=run_name):
+ with mlflow.start_run():
   
     # Set the model parameters. 
-    #n_estimators = 1000
-    #max_depth = 5
-    #max_features = 5
+    n_estimators = 1000
+    max_depth = 5
+    max_features = 10
 
     # Create and train model.
-    rf = RandomForestRegressor(**params)
-    #rf = RandomForestRegressor(n_estimators = n_estimators, max_depth = max_depth, max_features = max_features)
+    rf = RandomForestClassifier(n_estimators = n_estimators, max_depth = max_depth, max_features = max_features)
     rf.fit(X_train, y_train)
 
     # Use the model to make predictions on the test dataset.
@@ -211,6 +163,98 @@ def rf_reg(run_name, params, X_train, X_test, y_train, y_test):
 
 # COMMAND ----------
 
+#score for classifier model
+score = rf.score(X_test, y_test)
+log_p = rf.predict_proba(X_test)
+print(score)
+print(log_p)
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC Model Testing (to select the best parameters)
+
+# COMMAND ----------
+
+from sklearn.ensemble import 
+
+
+# COMMAND ----------
+
+
+# Enable autolog()
+# mlflow.sklearn.autolog() requires mlflow 1.11.0 or above.
+mlflow.sklearn.autolog()
+
+def rf_reg(run_name, params, X_train, X_test, y_train, y_test):
+# With autolog() enabled, all model parameters, a model score, and the fitted model are automatically logged.  
+  with mlflow.start_run(run_name=run_name):
+  
+    # Set the model parameters. 
+    #n_estimators = 1000
+    #max_depth = 5
+    #max_features = 5
+
+    # Create and train model.
+    rf = RandomForestRegressor(**params)
+    #rf = RandomForestRegressor(n_estimators = n_estimators, max_depth = max_depth, max_features = max_features)
+    rf.fit(X_train, y_train)
+
+    # Use the model to make predictions on the test dataset.
+    predictions = rf.predict(X_test)
+
+    # Create metrics
+    mse = mean_squared_error(y_test, predictions)
+    mae = mean_absolute_error(y_test, predictions)
+    r2 = predict_log_proba(y_test, predictions)
+    print("  mse: {}".format(mse))
+    print("  mae: {}".format(mae))
+    print("  R2: {}".format(r2))
+
+    # Log metrics
+    mlflow.log_metric("mse", mse)
+    mlflow.log_metric("mae", mae)  
+    mlflow.log_metric("r2", r2) 
+
+    # Create feature importance
+    importance = pd.DataFrame(list(zip(X_train.columns, rf.feature_importances_)), 
+                                columns=["Feature", "Importance"]
+                                ).sort_values("Importance", ascending=False)
+
+    # Log importances using a temporary file
+    temp = tempfile.NamedTemporaryFile(prefix="feature-importance-", suffix=".csv")
+    temp_name = temp.name
+    try:
+      importance.to_csv(temp_name, index=False)
+      mlflow.log_artifact(temp_name, "feature-importance.csv")
+    finally:
+      temp.close() # Delete the temp file
+
+    # Create plot
+    fig, ax = plt.subplots()
+
+    sns.residplot(predictions, y_test, lowess=True)
+    plt.xlabel("Predicted Driver Position")
+    plt.ylabel("Residual")
+    plt.title("Residual Plot")
+
+    # Log residuals using a temporary file
+    temp = tempfile.NamedTemporaryFile(prefix="residuals-", suffix=".png")
+    temp_name = temp.name
+    try:
+      fig.savefig(temp_name)
+      mlflow.log_artifact(temp_name, "residuals.png")
+    finally:
+      temp.close() # Delete the temp file
+
+    display(fig)
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
 params = {
   "n_estimators": 100,
   "max_depth": 5,
@@ -230,7 +274,7 @@ rf_reg("Second Run", params, X_train, X_test, y_train, y_test)
     # Set the model parameters. 
     n_estimators = 1000
     max_depth = 5
-    max_features = 5
+    max_features = 10
 
     # Create and train model.
     rf = RandomForestRegressor(n_estimators = n_estimators, max_depth = max_depth, max_features = max_features)
