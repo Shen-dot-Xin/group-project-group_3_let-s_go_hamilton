@@ -27,7 +27,7 @@ import boto3
 import pandas as pd
 import numpy as np
 
-#!pip install s3fs
+!pip install s3fs
 
 # COMMAND ----------
 
@@ -81,9 +81,10 @@ df_1.head()
 # COMMAND ----------
 
 # pivot table so that the circuitIds become dummy variables. 
-df_11 = df_1.pivot_table(values=['wins'], index=['year', 'constructorId'], columns='circuitId')
+df_11 = df_1.pivot_table(values=['wins'], index=['year', 'constructorId', 'constructorRef'], columns='circuitId')
 df_11.columns =['gp_' + str(s2) for (s1,s2) in df_11.columns.tolist()]
-df_11= df_11.fillna(0).reset_index()
+# df_11= df_11.fillna(0)
+df_11= df_11.reset_index()
 df_11.head()
 
 # COMMAND ----------
@@ -99,7 +100,7 @@ df_x.head()'''
 
 # COMMAND ----------
 
-df_2 = df.groupby(['year','constructorId']).points.mean() # Average Point 
+df_2 = df.groupby(['year','constructorId', 'constructorRef']).points.mean() # Average Point 
 df_2 = df_2.reset_index(name='avgpoints_c')
 df_2.loc[:, 'participation'] = 1 # Dummy variable for participation: 0 for absence, 1 for participation
 df_2.head()
@@ -107,12 +108,12 @@ df_2.head()
 # COMMAND ----------
 
 # merge with computed features
-df_x = df_2.merge(df_11, how = 'left', on = ['year', 'constructorId'])
+df_x = df_2.merge(df_11, how = 'left', on = ['year', 'constructorId', 'constructorRef'])
 df_x.head()
 
 # COMMAND ----------
 
-df_x= df_x.fillna(0)
+#df_x= df_x.fillna(0)
 
 # COMMAND ----------
 
@@ -152,7 +153,7 @@ df_x.head()
 # count the number of race the drivers hired by each constructor finish with a position
 df_4 = df.groupby(['year', 'constructorId']).position.count()
 df_4 = df_4.reset_index(name='race_count')
-df_4 = df_4.fillna(0)
+#df_4 = df_4.fillna(0)
 df_4.head()
 
 # COMMAND ----------
@@ -170,7 +171,7 @@ df_x.head()
 # the average lap number the team strategize for best performance
 df_5 = df.groupby(['year', 'constructorId']).fastestLap.mean()
 df_5 = df_5.reset_index(name='avg_fastestlap')
-df_5 = df_5.fillna(0)
+#df_5 = df_5.fillna(0)
 df_5.head()
 
 # COMMAND ----------
@@ -188,7 +189,7 @@ df_x.head()
 # the average fastest spead the team achieved in the season
 df_6 = df.groupby(['year', 'constructorId']).fastestLapSpeed.mean()
 df_6 = df_6.reset_index(name='avg_fastestspeed')
-df_6 = df_6.fillna(0)
+#df_6 = df_6.fillna(0)
 df_6.head()
 
 # COMMAND ----------
@@ -243,12 +244,13 @@ df_x['lag2_pst']=df_x.sort_values('year').groupby('constructorId')['lag1_pst'].s
 
 # COMMAND ----------
 
+'''
 df_x['lag1_avg']=df_x['lag1_avg'].fillna(0)
 df_x['lag2_avg']=df_x['lag2_avg'].fillna(0)
 df_x['lag1_ptc']=df_x['lag1_ptc'].fillna(0)
 df_x['lag2_ptc']=df_x['lag2_ptc'].fillna(0)
 df_x['lag1_pst']=df_x['lag1_pst'].fillna(0)
-df_x['lag2_pst']=df_x['lag2_pst'].fillna(0)
+df_x['lag2_pst']=df_x['lag2_pst'].fillna(0)'''
 
 # COMMAND ----------
 
@@ -273,7 +275,7 @@ df_xy.head()
 
 # COMMAND ----------
 
-df_xy['champion'] = df_xy['champion'].fillna(0)
+#df_xy['champion'] = df_xy['champion'].fillna(0)
 df_xy.head()
 
 # COMMAND ----------
