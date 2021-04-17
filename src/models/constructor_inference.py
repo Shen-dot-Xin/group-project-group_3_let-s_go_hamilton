@@ -11,7 +11,7 @@ dbutils.library.installPyPI("mlflow", "1.14.0")
 from pyspark.sql.types import DoubleType
 from pyspark.ml.feature import VectorAssembler, Normalizer, StandardScaler
 from pyspark.sql import Window
-from pyspark.sql.functions import lag, col, asc, min, max
+from pyspark.sql.functions import lag, col, asc, min, max, when
 
 # COMMAND ----------
 
@@ -20,10 +20,6 @@ df = spark.read.csv('s3://group3-gr5069/interim/constructor_features.csv', heade
 # COMMAND ----------
 
 display(df)
-
-# COMMAND ----------
-
-df.columns
 
 # COMMAND ----------
 
@@ -45,14 +41,25 @@ w = Window.partitionBy('year')
 for c in cols_to_normalize:
     df = (df.withColumn('mini', min(c).over(w))
         .withColumn('maxi', max(c).over(w))
-        .withColumn(c,  when(col('maxi') == col('mini'), 1).otherwise(((col(c) - col('mini')) / (col('maxi') - col('mini')))))
+        .withColumn(c,  
+                    when(col('maxi') == col('mini'), 0)
+                    .otherwise(((col(c) - col('mini')) / (col('maxi') - col('mini')))))
         .drop('mini')
         .drop('maxi'))
 
 # COMMAND ----------
 
-feature_list =['race_count',
-               'lag1_avg']
+feature_list =['avg_fastestspeed', 
+                     'avg_fastestlap',
+                     'race_count',
+                     'engineproblem',  
+                     'unique_drivers',
+                     'lag1_avg',
+                     'lag2_avg', 
+                     'lag1_pst',
+                     'lag2_pst',
+              'lag1_ptc',
+              'lag2_ptc']
 
 # COMMAND ----------
 
@@ -80,6 +87,7 @@ import seaborn as sns
 import tempfile
 from pyspark.ml.classification import LogisticRegression
 from pyspark.ml.evaluation import BinaryClassificationEvaluator
+from pyspark.ml.tuning import CrossValidator, ParamGridBuilder
 
 # COMMAND ----------
 
@@ -91,19 +99,30 @@ mlflow.sklearn.autolog()
 # With autolog() enabled, all model parameters, a model score, and the fitted model are automatically logged.  
 
 with mlflow.start_run():
-  lr = LogisticRegression(featuresCol ='features', labelCol = "champion")
-  lrModel = lr.fit(trainDF)
+  # logistic regression
+  # lr = LogisticRegression(featuresCol ='features', labelCol = "champion")
 
-  predictions = lrModel.transform(testDF)
+  # lasso
+  lr = LogisticRegression(featuresCol ='features', labelCol = "champion", elasticNetParam = 1, regParam=0.1)
   
+  lrModel = lr.fit(vecDF)
+  predictions = lrModel.transform(vecDF)
   evaluator= BinaryClassificationEvaluator(labelCol='champion')
   
+  # cross-validation
+  #paramGrid = ParamGridBuilder().build() # no parameter selection
+  #evaluator = BinaryClassificationEvaluator(labelCol="champion", metricName= "areaUnderROC")
+  #crossval = CrossValidator(estimator=lr, evaluator = evaluator, estimatorParamMaps = paramGrid, numFolds=5)
+  #modelCV = crossval.fit(vecDF)
+  #chk = modelCV.avgMetrics
+  #predictions = modelCV.transform(vecDF)
+  
   # Log model
-  mlflow.spark.log_model(lrModel, "logistic-regression-model-with-selected-features")
+  mlflow.spark.log_model(lrModel, "lasso-regression")
   trainingSummary = lrModel.summary
   
   # Log parameters
-  # mlflow.log_param("penalty", 0.001)
+  # mlflow.log_param("penalty", 0.01)
   
   # Create metrics
   #objectiveHistory = trainingSummary.objectiveHistory
@@ -114,39 +133,39 @@ with mlflow.start_run():
   falsePositiveRate = trainingSummary.weightedFalsePositiveRate
   truePositiveRate = trainingSummary.weightedTruePositiveRate
   
-  #fMeasure = trainingSummary.weightedFMeasure()
+  fMeasure = trainingSummary.weightedFMeasure()
   areaUnderROC = trainingSummary.areaUnderROC
   testAreaUnderROC = evaluator.evaluate(predictions)
   
   # Log metrics
-  #mlflow.log_metric("objectiveHistory", objectiveHistory)
-  mlflow.log_metric("accuracy", accuracy)
   mlflow.log_metric("falsePositiveRate", falsePositiveRate)
   mlflow.log_metric("truePositiveRate", truePositiveRate)
-  #mlflow.log_metric("fMeasure", fMeasure)
+  mlflow.log_metric("fMeasure", fMeasure)
   mlflow.log_metric("precision", precision)
   mlflow.log_metric("recall", recall)
   mlflow.log_metric("areaUnderROC", areaUnderROC)
-  mlflow.log_metric("testAreaUnderROC", testAreaUnderROC)
-  # Collecting the Feature Importance through Model Coefficients
+
+  # Feature Coefficients
   importance = pd.DataFrame(list(zip(feature_list, lrModel.coefficients)), 
                             columns=["Feature", "Importance"]
                           ).sort_values("Importance", ascending=False)
   
-  # Log importances using a temporary file
+  # Log Coefficients using a temporary file
   temp = tempfile.NamedTemporaryFile(prefix="feature-importance-", suffix=".csv")
   temp_name = temp.name
   try:
     importance.to_csv(temp_name, index=False)
     mlflow.log_artifact(temp_name, "feature-importance.csv")
   finally:
-    temp.close() # Delete the temp file
+    temp.close() 
+  
   #Create ROC plot
   roc = trainingSummary.roc.toPandas()
   plt.plot(roc['FPR'],roc['TPR'])
   plt.ylabel('False Positive Rate')
   plt.xlabel('True Positive Rate')
   plt.title('ROC Curve')
+  
   # Log ROC plot using a temporary file
   temp = tempfile.NamedTemporaryFile(prefix="ROC-Curve", suffix=".png")
   temp_name = temp.name
@@ -154,28 +173,16 @@ with mlflow.start_run():
     plt.savefig(temp_name)
     mlflow.log_artifact(temp_name, "ROC-Curve.png")
   finally:
-    temp.close() # Delete the temp file
+    temp.close() 
   plt.show()
-  #Create Beta-Coeff plot
-  beta = np.sort(lrModel.coefficients)
-  plt.plot(beta)
-  plt.ylabel('Coefficients')
-  plt.title('Coefficients Graph')
-  # Log Beta-Coeff plot using a temporary file
-  temp = tempfile.NamedTemporaryFile(prefix="Coeff", suffix=".png")
-  temp_name = temp.name
-  try:
-    plt.savefig(temp_name)
-    mlflow.log_artifact(temp_name, "Coeff.png")
-  finally:
-    temp.close() # Delete the temp file
-  plt.show()
+  
   #Create Precision-Recall plot
   pr = trainingSummary.pr.toPandas()
   plt.plot(pr['recall'],pr['precision'])
   plt.ylabel('Precision')
   plt.xlabel('Recall')
   plt.title('Precision-Recall Curve')
+  
   # Log Precision-Recall plot using a temporary file
   temp = tempfile.NamedTemporaryFile(prefix="Precision-Recall", suffix=".png")
   temp_name = temp.name
@@ -289,6 +296,10 @@ predDF_final.write.format('jdbc').options(
       dbtable='test_lr_preds',
       user='admin',
       password='Xs19980312!').mode('overwrite').save()
+
+# COMMAND ----------
+
+
 
 # COMMAND ----------
 
