@@ -23,25 +23,6 @@ display(df)
 
 # COMMAND ----------
 
-# window = Window.partitionBy('constructorId').orderBy(asc('year'))
-
-# COMMAND ----------
-
-#df = df.withColumn("lag1_fs", lag("avg_fastestspeed", 1, 0).over(window))
-#df = df.withColumn("lag2_fs", lag("avg_fastestspeed", 2, 0).over(window))
-
-# COMMAND ----------
-
-#df = df.withColumn("lag1_fl", lag("avg_fastestlap", 1, 0).over(window))
-#df = df.withColumn("lag2_fl", lag("avg_fastestlap", 2, 0).over(window))
-
-# COMMAND ----------
-
-#df = df.withColumn("lag1_nd", lag("unique_drivers", 1, 0).over(window))
-#df = df.withColumn("lag2_nd", lag("unique_drivers", 2, 0).over(window))
-
-# COMMAND ----------
-
 df.columns
 
 # COMMAND ----------
@@ -64,7 +45,7 @@ w = Window.partitionBy('year')
 for c in cols_to_normalize:
     df = (df.withColumn('mini', min(c).over(w))
         .withColumn('maxi', max(c).over(w))
-        .withColumn(c, ((col(c) - col('mini')) / (col('maxi') - col('mini'))))
+        .withColumn(c,  when(col('maxi') == col('mini'), 1).otherwise(((col(c) - col('mini')) / (col('maxi') - col('mini')))))
         .drop('mini')
         .drop('maxi'))
 
