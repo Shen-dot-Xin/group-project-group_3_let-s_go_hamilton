@@ -49,17 +49,7 @@ for c in cols_to_normalize:
 
 # COMMAND ----------
 
-feature_list =['avg_fastestspeed', 
-                     'avg_fastestlap',
-                     'race_count',
-                     'engineproblem',  
-                     'unique_drivers',
-                     'lag1_avg',
-                     'lag2_avg', 
-                     'lag1_pst',
-                     'lag2_pst',
-              'lag1_ptc',
-              'lag2_ptc']
+feature_list =[ 'race_count','lag1_avg']
 
 # COMMAND ----------
 
@@ -100,26 +90,27 @@ mlflow.sklearn.autolog()
 
 with mlflow.start_run():
   # logistic regression
-  # lr = LogisticRegression(featuresCol ='features', labelCol = "champion")
+  lr = LogisticRegression(featuresCol ='features', labelCol = "champion")
 
   # lasso
-  lr = LogisticRegression(featuresCol ='features', labelCol = "champion", elasticNetParam = 1, regParam=0.1)
+  # lr = LogisticRegression(featuresCol ='features', labelCol = "champion", elasticNetParam = 1, regParam=0.01)
   
-  lrModel = lr.fit(vecDF)
-  predictions = lrModel.transform(vecDF)
-  evaluator= BinaryClassificationEvaluator(labelCol='champion')
+  #lrModel = lr.fit(vecDF)
+  #predictions = lrModel.transform(vecDF)
+  #evaluator= BinaryClassificationEvaluator(labelCol='champion')
   
   # cross-validation
-  #paramGrid = ParamGridBuilder().build() # no parameter selection
-  #evaluator = BinaryClassificationEvaluator(labelCol="champion", metricName= "areaUnderROC")
-  #crossval = CrossValidator(estimator=lr, evaluator = evaluator, estimatorParamMaps = paramGrid, numFolds=5)
-  #modelCV = crossval.fit(vecDF)
-  #chk = modelCV.avgMetrics
-  #predictions = modelCV.transform(vecDF)
+  paramGrid = ParamGridBuilder().build() # no parameter selection
+  evaluator = BinaryClassificationEvaluator(labelCol="champion", metricName= "areaUnderROC")
+  crossval = CrossValidator(estimator=lr, evaluator = evaluator, estimatorParamMaps = paramGrid, numFolds=5)
+  modelCV = crossval.fit(vecDF)
+  chk = modelCV.avgMetrics
+  predictions = modelCV.transform(vecDF)
   
   # Log model
-  mlflow.spark.log_model(lrModel, "lasso-regression")
-  trainingSummary = lrModel.summary
+  mlflow.spark.log_model(modelCV, "5-fold-cross-validated-logistic-regression-with-selected-features")
+  bestModel = modelCV.bestModel
+  trainingSummary = bestModel.summary
   
   # Log parameters
   # mlflow.log_param("penalty", 0.01)
@@ -146,7 +137,7 @@ with mlflow.start_run():
   mlflow.log_metric("areaUnderROC", areaUnderROC)
 
   # Feature Coefficients
-  importance = pd.DataFrame(list(zip(feature_list, lrModel.coefficients)), 
+  importance = pd.DataFrame(list(zip(feature_list, bestModel.coefficients)), 
                             columns=["Feature", "Importance"]
                           ).sort_values("Importance", ascending=False)
   
@@ -293,7 +284,7 @@ predDF_final = predictions.select('year',
 predDF_final.write.format('jdbc').options(
       url='jdbc:mysql://sx2200-gr5069.ccqalx6jsr2n.us-east-1.rds.amazonaws.com/sx2200',
       driver='com.mysql.jdbc.Driver',
-      dbtable='test_lr_preds',
+      dbtable='grp3_constructor_championship_inference',
       user='admin',
       password='Xs19980312!').mode('overwrite').save()
 
