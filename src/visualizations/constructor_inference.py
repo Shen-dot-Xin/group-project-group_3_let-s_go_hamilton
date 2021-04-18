@@ -108,7 +108,43 @@ plt.show()
 
 # COMMAND ----------
 
-predDF_final.to_csv("s3://group3-gr5069/interim/constructor_inference.csv", index = False)
+df_prob = spark.read.csv("s3://group3-gr5069/interim/constructor_inference.csv", header = True, inferSchema = True)
+
+# COMMAND ----------
+
+from mpl_toolkits import mplot3d
+import numpy as np
+import matplotlib.pyplot as plt
+
+# COMMAND ----------
+
+df_prob_pd = df_prob.toPandas()
+
+# COMMAND ----------
+
+fig = plt.figure(figsize=(10,8))
+ax = plt.axes(projection='3d')
+
+# Data for three-dimensional scattered points
+zdata = df_prob_pd['prob_1']
+xdata = df_prob_pd['lag1_avg']
+ydata = df_prob_pd['race_count']
+
+ax.scatter3D(xdata, ydata, zdata, c=zdata, cmap = 'coolwarm', s = 5)
+ax.set_xlabel('Average Driver Point, Last Season ')
+ax.set_ylabel('Race Completed, Current Season')
+ax.set_zlabel('Probability of Championship')
+
+# COMMAND ----------
+
+fig = plt.figure(figsize=(10,8))
+ax = plt.axes(projection='3d')
+
+ax.plot_trisurf(xdata, ydata, zdata,
+                cmap='coolwarm', edgecolor='none')
+ax.set_xlabel('Average Driver Point, Last Season ')
+ax.set_ylabel('Race Completed, Current Season')
+ax.set_zlabel('Probability of Championship')
 
 # COMMAND ----------
 
