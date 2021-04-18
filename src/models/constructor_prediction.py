@@ -48,7 +48,7 @@ df.head()
 
 #split training and test dataset, the former using data between 1950-2010, the later contains data between 2011-2017
 y = df[['champion','year']]
-X = df.loc[:, ['race_count', 'lag1_avg', 'lag1_ptc', 'lag1_pst', 'lag2_pst', 'unique_drivers', 'avg_fastestspeed', 'avg_fastestlap', 'year']]
+X = df.loc[:, ['race_count', 'lag1_avg', 'lag1_ptc', 'lag1_pst', 'lag2_pst', 'avg_fastestspeed', 'avg_fastestlap', 'year']]
 X_train = X[(X['year']<=2010)]
 X_test = X[(X['year']>=2011) & (X['year']<=2017)]
 y_train = y[(y['year']<=2010)]
@@ -98,7 +98,7 @@ svc_accuracy = np.mean(cross_val_score(svc, X_train, y_train, cv=kfold))
 #use logistic model with normalized data
 from sklearn.linear_model import LogisticRegression
 from sklearn import preprocessing
-hyperparameters = {'C':np.logspace(1, 10, 100)}
+hyperparameters = {'C': [0.1, 1, 10, 100, 1000]}
 
 scaler = preprocessing.StandardScaler().fit(X_train)
 X_train_s = scaler.transform(X_train)
@@ -112,7 +112,7 @@ print("Best Parameters", model.best_params_)
 
 # COMMAND ----------
 
-logreg = LogisticRegression(C=28).fit(X_train, y_train)
+logreg = LogisticRegression(C=0.1).fit(X_train_s, y_train)
 
 print("LOGREG for REGRESSION")
 
@@ -137,7 +137,7 @@ print("Test set score: {:.2f}".format(logreg.score(X_test_s, y_test)))
 
 # COMMAND ----------
 
-# MAGIC %md #### Logistic Regression and Prediction
+# MAGIC %md #### Logistic Regression Prediction
 
 # COMMAND ----------
 
@@ -157,16 +157,6 @@ df = spark.read.csv('s3://group3-gr5069/interim/constructor_features.csv', heade
 
 # COMMAND ----------
 
-# window = Window.partitionBy('constructorId').orderBy(asc('year'))
-#df = df.withColumn("lag1_fs", lag("avg_fastestspeed", 1, 0).over(window))
-#df = df.withColumn("lag2_fs", lag("avg_fastestspeed", 2, 0).over(window))
-#df = df.withColumn("lag1_fl", lag("avg_fastestlap", 1, 0).over(window))
-#df = df.withColumn("lag2_fl", lag("avg_fastestlap", 2, 0).over(window))
-#df = df.withColumn("lag1_nd", lag("unique_drivers", 1, 0).over(window))
-#df = df.withColumn("lag2_nd", lag("unique_drivers", 2, 0).over(window))
-
-# COMMAND ----------
-
 df.columns
 
 # COMMAND ----------
@@ -175,8 +165,6 @@ cols_to_normalize = ['avg_fastestspeed',
                      'avg_fastestlap',
                      'race_count',
                      'engineproblem',
-                     'avgpoints_c',  
-                     'unique_drivers',
                      'lag1_ptc',
                      'lag1_avg',
                      'lag1_pst',
@@ -197,9 +185,7 @@ for c in cols_to_normalize:
 feature_list =['avg_fastestspeed', 
                      'avg_fastestlap',
                      'race_count',
-                     'engineproblem',
-                     'avgpoints_c',  
-                     'unique_drivers',
+                     'engineproblem',  
                      'lag1_ptc',
                      'lag1_avg',
                      'lag1_pst',
@@ -244,7 +230,7 @@ with mlflow.start_run():
   #mlflow.log_param("penalty", 0.001)
   
   # Create metrics
-  #objectiveHistory = trainingSummary.objectiveHistory
+  #objectiveHistory = testSummary.objectiveHistory
   accuracy = trainingSummary.accuracy
   precision = trainingSummary.weightedPrecision
   recall = trainingSummary.weightedRecall
@@ -252,8 +238,7 @@ with mlflow.start_run():
   falsePositiveRate = trainingSummary.weightedFalsePositiveRate
   truePositiveRate = trainingSummary.weightedTruePositiveRate
   
-  #fMeasure = trainingSummary.weightedFMeasure()
-  areaUnderROC = trainingSummary.areaUnderROC
+  #fMeasure = testSummary.weightedFMeasure()
   testAreaUnderROC = evaluator.evaluate(predictions)
   
   # Log metrics
@@ -264,7 +249,6 @@ with mlflow.start_run():
   #mlflow.log_metric("fMeasure", fMeasure)
   mlflow.log_metric("precision", precision)
   mlflow.log_metric("recall", recall)
-  mlflow.log_metric("areaUnderROC", areaUnderROC)
   mlflow.log_metric("testAreaUnderROC", testAreaUnderROC)
   # Collecting the Feature Importance through Model Coefficients
   importance = pd.DataFrame(list(zip(feature_list, lrModel.coefficients)), 
@@ -279,7 +263,7 @@ with mlflow.start_run():
     mlflow.log_artifact(temp_name, "feature-importance.csv")
   finally:
     temp.close() # Delete the temp file
-  #Create ROC plot
+  #Create ROC plot for test set
   roc = trainingSummary.roc.toPandas()
   plt.plot(roc['FPR'],roc['TPR'])
   plt.ylabel('False Positive Rate')
@@ -323,7 +307,10 @@ with mlflow.start_run():
   finally:
     temp.close() # Delete the temp file
   plt.show()
-  print('Training set areaUnderROC: ' + str(trainingSummary.areaUnderROC))
+
+# COMMAND ----------
+
+lrModel.coefficients
 
 # COMMAND ----------
 
@@ -440,3 +427,24 @@ predDF_final_done = spark.read.format("jdbc").option("url", "jdbc:mysql://sx2200
 
 # COMMAND ----------
 
+# MAGIC %md #### Marginal Effects 
+
+# COMMAND ----------
+
+from sklearn.inspection import plot_partial_dependence, partial_dependence
+from sklearn.datasets import make_friedman1
+from sklearn.linear_model import LinearRegression
+from sklearn.ensemble import GradientBoostingRegressor
+%matplotlib inline
+
+# COMMAND ----------
+
+factors = X_train[['race_count','lag1_avg']]
+# plot the partial dependence (marginal effect)
+plot_partial_dependence(logreg, X_train, factors)  
+# get the partial dependence (marginal effect)
+partial_dependence(logreg, X_train_s, [0])  
+
+# COMMAND ----------
+
+# From the plots, the marginal effect of race_count and lag1_avg are shown. The relationship between races completed and whether or not the constructor would win a season is a linear relation with positive slope, and the line is quite cliffy. The relation between average points earned in last season and the constructor championship is also positive, while the slope of this curve is smaller than the slope of race_count.
