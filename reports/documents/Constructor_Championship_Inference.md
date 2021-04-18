@@ -12,28 +12,24 @@ The two features selected to explain the constructor championship in the logisti
 |race_count|the number of races that the team drivers completed in the current season|numerical|5.93|
 |avg_point|the average driver points per race the constructor obtained in the last season|numerical|2.75|
 
-The rest of the features in the features pool include circuits, constructor ranking, etc. They are discarded by applying Lasso regression with a regularization that reduces their coeffcients to 0. 
+`race_count` is the more important feature as compared to `avg_point` because it has a larger positive coefficient. The rest of the features in the features pool include circuits, constructor ranking, etc. They are discarded by applying Lasso regression with a regularization that reduces their coeffcients to 0. 
+
+![Other Features](https://github.com/QMSS-GR5069-Spring2021/group-project-group_3_let-s_go_hamilton/blob/main/reports/figures/distribution_normalizedfeature.png)
 
 The model handles the data relatively well. 
 
-![ROC curve]
-![alt text](https://github.com/QMSS-GR5069-Spring2021/group-project-group_3_let-s_go_hamilton/reports/figures/ROC-Curve.png)
+![ROC Curve](https://github.com/QMSS-GR5069-Spring2021/group-project-group_3_let-s_go_hamilton/blob/main/reports/figures/ROC-Curve.png)
+![Precision Recall Curve](https://github.com/QMSS-GR5069-Spring2021/group-project-group_3_let-s_go_hamilton/blob/main/reports/figures/Precision-Recall.png)
 
-1. Area under ROC curve
-2. F measure
-3. Confusion Matrix
+After the fitting the data, the area under ROC curve reaches 0.928. The F score is 0.945, the precision is 0.945 and the recall is 0.95. 
 
-- What is the most important features? How is it determined?
-1. the number of races is more important than the average, because it has a larger positive coefficients
-
-- Provide some marginal effects for the variable you identified and interpret it in the context of f1 racing (story telling)
-It is very 
+![Marginal Effect - surface](https://github.com/QMSS-GR5069-Spring2021/group-project-group_3_let-s_go_hamilton/blob/main/reports/figures/marginaleffect_3dsurface.png)
 
 The more race a team finishes, the more points the team get.
 The better a team performs last season, the better it would perform this season.
 
-For teams which have won a championship, how is the breakdown of true and false prediction?
-What teams are predicted to win the championship, but actually did not?
+![race_count](https://github.com/QMSS-GR5069-Spring2021/group-project-group_3_let-s_go_hamilton/blob/main/reports/figures/racecount_by_championship.png)
+![lag1_avg_point](https://github.com/QMSS-GR5069-Spring2021/group-project-group_3_let-s_go_hamilton/blob/main/reports/figures/lag1driverpoint_by_championship.png)
 
 - Does it make sense to think of it as an explanation for why a constructor wins a season? Or is it simply association?
 
