@@ -172,3 +172,13 @@ score = rf.score(X_test, y_test)
 log_p = rf.predict_proba(X_test)
 print(score)
 print(log_p)
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC we change the binary classifier model into non-binary classifier model (the prediction output is the position), the accuracy decreases to 0.262, which is quite low, but the prediction result is reasonable. If we randomly guess the ranking, the possibility will be 0.05, and due to the lack of data, the accuracy cannot be very high.
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC So, we change to random forest regression model.
