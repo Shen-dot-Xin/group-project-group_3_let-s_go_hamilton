@@ -1,14 +1,20 @@
 ### Constructor Championship Inference
 
-- Describe the model, explain why each feature was selected
+Between year 1958 and 2010, Formula One constructors have been racing every year for the constructor's championship. In this period 202 teams and 610 drivers have raced in 775 races. Over time, some teams quit, while others joined. In the year of 2021, 10 teams are racing for constructor championship, among which only the team Ferrari raced every single race in the history of Formula One. Besides, some teams faced frequent change of ownership while others rebranded themselves periodically for various reasons, which all give the history of Formula One teams a lot of complications. 
 
-The model selected is a logistic regression model with two features: 
-1. the number of races that the drivers completed in the current season  
-2. the average driver points per race the constructor obtained in the last season
+Formula One rules have been constantly changing as well. From more than 10 racers per season for some team in the early years to the current day regulation that specifies two racers per team, the rules have evolved itself to make Formula One a spectacular sport to watch.  
 
-The other features are discarded by applying Lasso regression with a regularization that reduces the coeffcients of unnecessary features to 0. 
+Given the history of constructor competition, the team is interested in understanding the key contributing factors to a constructor's success. Using a logistic regression model with two selected features, the team tries to come up with model coefficients that make the model best fit the championship data. 
 
-- Provide statistic that show how well this model fit the data
+The two features selected to explain the constructor championship in the logistic regression model are:
+|Features|Description| Type| Coefficients|
+|--------|-----------|-----|-------------|
+|race_count|the number of races that the team drivers completed in the current season|numerical|5.93|
+|avg_point|the average driver points per race the constructor obtained in the last season|numerical|2.75|
+
+The rest of the features in the features pool include circuits, constructor ranking, etc. They are discarded by applying Lasso regression with a regularization that reduces their coeffcients to 0. 
+
+The model handles the data relatively well. 
 
 1. Area under ROC curve
 2. F measure
