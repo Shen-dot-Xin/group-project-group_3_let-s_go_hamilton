@@ -29,78 +29,115 @@ logger.setLevel(logging.CRITICAL)
 
 # COMMAND ----------
 
-df = spark.read.csv('s3://group3-gr5069/interim/constructor_features.csv', header = True, inferSchema = True)
+# MAGIC %md #### SVC Model
 
 # COMMAND ----------
 
-display(df)
+s3 = boto3.client('s3')
+bucket = "group3-gr5069"
+
+c = "interim/constructor_features.csv"
+
+obj = s3.get_object(Bucket= bucket, Key= c)
+data = pd.read_csv(obj['Body'])
+data = data[(data['year']>=1950) & (data['year']<=2017)]
+df = data.fillna(0)
+df.head() 
 
 # COMMAND ----------
 
-# window = Window.partitionBy('constructorId').orderBy(asc('year'))
+#split training and test dataset, the former using data between 1950-2010, the later contains data between 2011-2017
+y = df[['champion','year']]
+X = df.loc[:, ['race_count', 'lag1_avg', 'lag1_ptc', 'lag1_pst', 'lag2_pst', 'unique_drivers', 'avg_fastestspeed', 'avg_fastestlap', 'year']]
+X_train = X[(X['year']<=2010)]
+X_test = X[(X['year']>=2011) & (X['year']<=2017)]
+y_train = y[(y['year']<=2010)]
+y_test = y[(y['year']>=2011) & (y['year']<=2017)]
+X_train = X_train.drop(['year'], axis=1)
+X_test = X_test.drop(['year'], axis=1)
+y_train = y_train.drop(['year'], axis=1)
+y_test = y_test.drop(['year'], axis=1)
+X_test
 
 # COMMAND ----------
 
-#df = df.withColumn("lag1_fs", lag("avg_fastestspeed", 1, 0).over(window))
-#df = df.withColumn("lag2_fs", lag("avg_fastestspeed", 2, 0).over(window))
+#set KFold and use GridSearchCV to find the best paramater for SVC model
+from sklearn.model_selection import KFold
+kfold = KFold(n_splits=5)
+
+from sklearn.model_selection import GridSearchCV
+from sklearn.svm import SVC
+
+hyper_param = {'C': [0.1, 1, 10, 100, 1000]}
+
+SVC_model = SVC()
+model= GridSearchCV(SVC_model, hyper_param, cv = kfold)
+model.fit(X_train, y_train.values.ravel())
+
+print("Best Parameters", model.best_params_)
 
 # COMMAND ----------
 
-#df = df.withColumn("lag1_fl", lag("avg_fastestlap", 1, 0).over(window))
-#df = df.withColumn("lag2_fl", lag("avg_fastestlap", 2, 0).over(window))
+from sklearn.model_selection import cross_val_score
+svc = SVC(kernel='linear', C=10).fit(X_train, y_train) 
+
+print("SVC") 
+print("Test set score: {:.2f}".format(svc.score(X_test, y_test)))
+
+# Kfold cross validation
+print("Mean Cross-Validation, Kfold: {:.2f}".format(np.mean(cross_val_score(svc, X_train, y_train, cv=kfold))))
+
+svc_accuracy = np.mean(cross_val_score(svc, X_train, y_train, cv=kfold))
 
 # COMMAND ----------
 
-#df = df.withColumn("lag1_nd", lag("unique_drivers", 1, 0).over(window))
-#df = df.withColumn("lag2_nd", lag("unique_drivers", 2, 0).over(window))
+# MAGIC %md #### Compare SVC and logistic models
 
 # COMMAND ----------
 
-df.columns
+#use logistic model with normalized data
+from sklearn.linear_model import LogisticRegression
+from sklearn import preprocessing
+hyperparameters = {'C':np.logspace(1, 10, 100)}
+
+scaler = preprocessing.StandardScaler().fit(X_train)
+X_train_s = scaler.transform(X_train)
+X_test_s = scaler.transform(X_test)
+
+logit = LogisticRegression()
+model= GridSearchCV(logit, hyperparameters, cv = kfold)
+model.fit(X_train_s, y_train.values.ravel())
+
+print("Best Parameters", model.best_params_)
 
 # COMMAND ----------
 
-cols_to_normalize = ['avg_fastestspeed', 
-                     'avg_fastestlap',
-                     'race_count',
-                     'engineproblem',
-                     'avgpoints_c',  
-                     'unique_drivers',
-                     'position',
-                     'lag1_avg',
-                     'lag2_avg', 
-                     'lag1_pst',
-                     'lag2_pst']
+logreg = LogisticRegression(C=28).fit(X_train, y_train)
+
+print("LOGREG for REGRESSION")
+
+#test and training score
+print("Training set score: {:.2f}".format(logreg.score(X_train_s, y_train)))
+print("Test set score: {:.2f}".format(logreg.score(X_test_s, y_test)))
+
+#Kfold cross validation
+print("Mean Cross-Validation, Kfold: {:.2f}".format(np.mean(cross_val_score(logreg, X_train_s, y_train, cv=kfold))))
+logreg_accuracy = np.mean(cross_val_score(logreg, X_train_s, y_train, cv=kfold))
 
 # COMMAND ----------
 
-w = Window.partitionBy('year')
-for c in cols_to_normalize:
-    df = (df.withColumn('mini', min(c).over(w))
-        .withColumn('maxi', max(c).over(w))
-        .withColumn(c, ((col(c) - col('mini')) / (col('maxi') - col('mini'))))
-        .drop('mini')
-        .drop('maxi'))
+print("SVC")
+print("Accuracy: {:.2f}".format(svc_accuracy))
+print("Test set score: {:.2f}".format(svc.score(X_test, y_test)))
+print("Logistic")
+print("Accuracy: {:.2f}".format(logreg_accuracy))
+print("Test set score: {:.2f}".format(logreg.score(X_test_s, y_test)))
+
+#The mean cross validation score shows that the accuracy of svc model and logistic model are the same. While the test set score of Logistic regression model is higher than that of SVC model(0.94 vs 0.91).Therefore, we choose the logistic regression model to do the prediction and save the output to a database.
 
 # COMMAND ----------
 
-feature_list =['race_count',
-               'lag1_avg']
-
-# COMMAND ----------
-
-df = df.na.fill(value=0,subset=feature_list)
-
-# COMMAND ----------
-
-vecAssembler = VectorAssembler(inputCols = feature_list, outputCol = "features")
-
-vecDF = vecAssembler.transform(df)
-
-# COMMAND ----------
-
-# MAGIC %md 
-# MAGIC #### Logistic Regression
+# MAGIC %md #### Logistic Regression and Prediction
 
 # COMMAND ----------
 
@@ -116,7 +153,75 @@ from pyspark.ml.evaluation import BinaryClassificationEvaluator
 
 # COMMAND ----------
 
-(trainDF, testDF) = vecDF.randomSplit([.8, .2], seed=42)
+df = spark.read.csv('s3://group3-gr5069/interim/constructor_features.csv', header = True, inferSchema = True)
+
+# COMMAND ----------
+
+# window = Window.partitionBy('constructorId').orderBy(asc('year'))
+#df = df.withColumn("lag1_fs", lag("avg_fastestspeed", 1, 0).over(window))
+#df = df.withColumn("lag2_fs", lag("avg_fastestspeed", 2, 0).over(window))
+#df = df.withColumn("lag1_fl", lag("avg_fastestlap", 1, 0).over(window))
+#df = df.withColumn("lag2_fl", lag("avg_fastestlap", 2, 0).over(window))
+#df = df.withColumn("lag1_nd", lag("unique_drivers", 1, 0).over(window))
+#df = df.withColumn("lag2_nd", lag("unique_drivers", 2, 0).over(window))
+
+# COMMAND ----------
+
+df.columns
+
+# COMMAND ----------
+
+cols_to_normalize = ['avg_fastestspeed', 
+                     'avg_fastestlap',
+                     'race_count',
+                     'engineproblem',
+                     'avgpoints_c',  
+                     'unique_drivers',
+                     'lag1_ptc',
+                     'lag1_avg',
+                     'lag1_pst',
+                     'lag2_pst']
+
+# COMMAND ----------
+
+w = Window.partitionBy('year')
+for c in cols_to_normalize:
+    df = (df.withColumn('mini', min(c).over(w))
+        .withColumn('maxi', max(c).over(w))
+        .withColumn(c, ((col(c) - col('mini')) / (col('maxi') - col('mini'))))
+        .drop('mini')
+        .drop('maxi'))
+
+# COMMAND ----------
+
+feature_list =['avg_fastestspeed', 
+                     'avg_fastestlap',
+                     'race_count',
+                     'engineproblem',
+                     'avgpoints_c',  
+                     'unique_drivers',
+                     'lag1_ptc',
+                     'lag1_avg',
+                     'lag1_pst',
+                     'lag2_pst']
+
+# COMMAND ----------
+
+df = df.na.fill(value=0,subset=feature_list)
+
+# COMMAND ----------
+
+vecAssembler = VectorAssembler(inputCols = feature_list, outputCol = "features")
+
+# COMMAND ----------
+
+trainDF = vecAssembler.transform(df[df['year']<=2010])
+testDF = vecAssembler.transform(df[(df['year']>=2011) & (df['year']<=2017)])
+
+# COMMAND ----------
+
+trainDF = trainDF.na.fill(value=0)
+testDF = testDF.na.fill(value=0)
 
 # COMMAND ----------
 
@@ -136,7 +241,7 @@ with mlflow.start_run():
   trainingSummary = lrModel.summary
   
   # Log parameters
-  # mlflow.log_param("penalty", 0.001)
+  #mlflow.log_param("penalty", 0.001)
   
   # Create metrics
   #objectiveHistory = trainingSummary.objectiveHistory
@@ -325,118 +430,12 @@ predDF_final.write.format('jdbc').options(
 
 # COMMAND ----------
 
-# MAGIC %md #### SVC Model
-
-# COMMAND ----------
-
-s3 = boto3.client('s3')
-bucket = "group3-gr5069"
-
-c = "interim/constructor_features.csv"
-
-obj = s3.get_object(Bucket= bucket, Key= c)
-data = pd.read_csv(obj['Body'])
-data = data[(data['year']>=1950) & (data['year']<=2017)]
-df = data.fillna(0)
-df.head() 
-
-# COMMAND ----------
-
-#split training and test dataset, the former using data between 1950-2010, the later contains data between 2011-2017
-y = df[['champion','year']]
-X = df.loc[:, ['race_count', 'lag1_avg', 'lag2_avg', 'lag1_ptc', 'lag2_ptc', 'lag1_pst', 'lag2_pst', 'unique_drivers', 'avg_fastestspeed', 'avg_fastestlap', 'year']]
-X_train = X[(X['year']<=2010)]
-X_test = X[(X['year']>=2011) & (X['year']<=2017)]
-y_train = y[(y['year']<=2010)]
-y_test = y[(y['year']>=2011) & (y['year']<=2017)]
-X_train = X_train.drop(['year'], axis=1)
-X_test = X_test.drop(['year'], axis=1)
-y_train = y_train.drop(['year'], axis=1)
-y_test = y_test.drop(['year'], axis=1)
-X_test
-
-# COMMAND ----------
-
-#set KFold and use GridSearchCV to find the best paramater for SVC model
-from sklearn.model_selection import KFold
-kfold = KFold(n_splits=5)
-
-from sklearn.model_selection import GridSearchCV
-from sklearn.svm import SVC
-
-hyper_param = {'C': [0.1, 1, 10, 100, 1000]}
-
-SVC_model = SVC()
-model= GridSearchCV(SVC_model, hyper_param, cv = kfold)
-model.fit(X_train, y_train.values.ravel())
-
-print("Best Parameters", model.best_params_)
-
-# COMMAND ----------
-
-from sklearn.model_selection import cross_val_score
-svc = SVC(kernel='linear', C=0.1).fit(X_train, y_train) 
-
-print("SVC") 
-print("Test set score: {:.2f}".format(svc.score(X_test, y_test)))
-
-# Kfold cross validation
-print("Mean Cross-Validation, Kfold: {:.2f}".format(np.mean(cross_val_score(svc, X_train, y_train, cv=kfold))))
-
-svc_accuracy = np.mean(cross_val_score(svc, X_train, y_train, cv=kfold))
-
-# COMMAND ----------
-
-# MAGIC %md #### Compare SVC and logistic models
-
-# COMMAND ----------
-
-#use logistic model with normalized data
-from sklearn.linear_model import LogisticRegression
-from sklearn import preprocessing
-hyperparameters = {'C':np.logspace(1, 10, 100)}
-
-scaler = preprocessing.StandardScaler().fit(X_train)
-X_train_s = scaler.transform(X_train)
-X_test_s = scaler.transform(X_test)
-
-logit = LogisticRegression()
-model= GridSearchCV(logit, hyperparameters, cv = kfold)
-model.fit(X_train_s, y_train.values.ravel())
-
-print("Best Parameters", model.best_params_)
-
-# COMMAND ----------
-
-logreg = LogisticRegression(C=10).fit(X_train, y_train)
-
-print("LOGREG for REGRESSION")
-
-#test and training score
-print("Training set score: {:.2f}".format(logreg.score(X_train_s, y_train)))
-print("Test set score: {:.2f}".format(logreg.score(X_test_s, y_test)))
-
-#Kfold cross validation
-print("Mean Cross-Validation, Kfold: {:.2f}".format(np.mean(cross_val_score(logreg, X_train_s, y_train, cv=kfold))))
-logreg_accuracy = np.mean(cross_val_score(logreg, X_train_s, y_train, cv=kfold))
-
-# COMMAND ----------
-
-print("SVC")
-print("Accuracy: {:.2f}".format(svc_accurancy))
-print("Logistic")
-print("Accuracy: {:.2f}".format(logreg_accurancy))
-
-#The mean cross validation score shows that the accuracy of svc model and logistic model are the same. While the test set score of Logistic regression model is higher than that of SVC model(0.94 vs 0.91).Therefore, we choose the logistic regression model to do the prediction and save the output to a database.
-
-# COMMAND ----------
-
 # MAGIC %md #### Read from db
 
 # COMMAND ----------
 
 predDF_final_done = spark.read.format("jdbc").option("url", "jdbc:mysql://sx2200-gr5069.ccqalx6jsr2n.us-east-1.rds.amazonaws.com/sx2200") \
-    .option("driver", "com.mysql.jdbc.Driver").option("dbtable", "test_airbnb_preds") \
+    .option("driver", "com.mysql.jdbc.Driver").option("dbtable", "test_lr_preds") \
     .option("user", "admin").option("password", "Xs19980312!").load()
 
 # COMMAND ----------
