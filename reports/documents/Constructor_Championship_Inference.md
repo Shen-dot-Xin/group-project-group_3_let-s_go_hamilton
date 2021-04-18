@@ -41,5 +41,3 @@ The number of race completed may have some explanatory power:
 1. For the top tier constructors, their drivers tend to out-perform their peers and complete a race with some points. Although this is not always true, not completing a race, be it a car retirement or a crash, means no point for the team. While completing a race never equals winning the race, it does indicate for the top teams, that their drivers score some decent points. 
 
 The average driver points per race the constructor obtained in the last season, indicating the constructor's last season performance, does not neccessarily explain a championship.
-1. Last year is last year, this year is this year. Almost every year, FIA make rule changes or regulates the car design, etc., which are sometime designed to deprive some teams of their advantages.  
-2. However, the points a constructor win last year do indicates the constructor's performance, which encompass numerous aspects contributing to its success, including the quality of the car, the strategy, the choice of driver lineups, availability of funding, etc. 
