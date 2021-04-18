@@ -1,6 +1,6 @@
 # Databricks notebook source
 # MAGIC %md
-# MAGIC #### Constructor Championship, Features
+# MAGIC #### Constructor Championship Visualization
 
 # COMMAND ----------
 
@@ -145,6 +145,38 @@ ax.plot_trisurf(xdata, ydata, zdata,
 ax.set_xlabel('Average Driver Point, Last Season ')
 ax.set_ylabel('Race Completed, Current Season')
 ax.set_zlabel('Probability of Championship')
+
+# COMMAND ----------
+
+# MAGIC %md 
+# MAGIC #### Selected Features Distribution by Championship
+
+# COMMAND ----------
+
+plt.style.use('seaborn')
+sns.boxplot(x="champion", y="race_count", palette="Set3",data=df_prob_pd, dodge=False)
+sns.swarmplot(x="champion", y="race_count", data=df_prob_pd, color="tomato", s = 3)
+
+# COMMAND ----------
+
+sns.boxplot(x="champion", y="lag1_avg", palette="Set3",data=df_prob_pd, dodge=False)
+sns.swarmplot(x="champion", y="lag1_avg", data=df_prob_pd, color="tomato", s = 3)
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC #### Modelfit
+# MAGIC 1. championship = 1
+# MAGIC 2. prediction = 1
+
+# COMMAND ----------
+
+df_cham1 = df_prob.filter(col('champion') == 1).toPandas()
+df_pred1 = df_prob.filter(col('prediction') == 1).toPandas()
+
+# COMMAND ----------
+
+df_cham1
 
 # COMMAND ----------
 
