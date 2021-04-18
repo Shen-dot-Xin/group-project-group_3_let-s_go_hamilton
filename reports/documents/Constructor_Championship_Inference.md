@@ -17,7 +17,10 @@ The two features selected to explain the constructor championship in the logisti
 #### Feature Selection
 `race_count` is the more important feature as compared to `avg_point` because it has a larger positive coefficient. The rest of the features in the features pool include circuits, constructor ranking, etc. They are discarded by applying Lasso regression with a regularization that reduces their coeffcients to 0. 
 
-![Other Features](https://github.com/QMSS-GR5069-Spring2021/group-project-group_3_let-s_go_hamilton/blob/main/reports/figures/distribution_normalizedfeature.png)
+<p align="center">
+  <img width="460" height="460" src="https://github.com/QMSS-GR5069-Spring2021/group-project-group_3_let-s_go_hamilton/blob/main/reports/figures/distribution_normalizedfeature.png">
+</p>
+
 
 #### Model Performance
 The model handles the data relatively well. 
@@ -28,7 +31,9 @@ The model handles the data relatively well.
 After the fitting the data, the area under ROC curve reaches 0.928. The F score is 0.945, the precision is 0.945 and the recall is 0.95. 
 
 #### Marginal Effect of Features
-![Marginal Effect - surface](https://github.com/QMSS-GR5069-Spring2021/group-project-group_3_let-s_go_hamilton/blob/main/reports/figures/marginaleffect_3dsurface.png)
+<p align="center">
+  <img width="500" height="460" src="https://github.com/QMSS-GR5069-Spring2021/group-project-group_3_let-s_go_hamilton/blob/main/reports/figures/marginaleffect_3dsurface.png">
+</p>
 
 The more race a team finishes, the more points the team get.
 The better a team performs last season, the better it would perform this season.
