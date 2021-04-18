@@ -47,4 +47,7 @@ However, when competitions are fierce and the top tier constructors are fighting
 
 The average driver points per race the constructor obtained in the last season, indicating the constructor's last season performance, explains a championship in a limited way. While advantage of a constructor over the others could carry through from year to year, it is not neccessarily so, given a lot of external factors such as rule change, weather, accidents, etc., which are beyond control. 
 
+![Championship](https://github.com/QMSS-GR5069-Spring2021/group-project-group_3_let-s_go_hamilton/blob/main/reports/figures/Championship_fitted.png)
+![Fitted](https://github.com/QMSS-GR5069-Spring2021/group-project-group_3_let-s_go_hamilton/blob/main/reports/figures/Fit_by_Championship.png)
+
 In fact, giving weights to last year performance result in a better of the model over constructors with consecutive and multiple wins, such as Ferrari, Williams and Mclaren. The three are also among the teams with the least rebranding and name-changing drama, which could indicate some consistancy in their performance. 
