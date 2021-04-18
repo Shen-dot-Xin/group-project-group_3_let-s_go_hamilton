@@ -108,6 +108,7 @@ plt.show()
 
 # COMMAND ----------
 
+# read constructor inference model results
 df_prob = spark.read.csv("s3://group3-gr5069/interim/constructor_inference.csv", header = True, inferSchema = True)
 
 # COMMAND ----------
@@ -176,7 +177,49 @@ df_pred1 = df_prob.filter(col('prediction') == 1).toPandas()
 
 # COMMAND ----------
 
-df_cham1
+df_plot = df_cham1.groupby(['constructorId', 'constructorRef']).agg({'champion':'sum','prediction':'sum'}).reset_index()
+df_plot['missed'] = df_plot['champion'] - df_plot['prediction']
+df_plot['%missed'] = df_plot['missed']/df_plot['champion']
+df_plot
+
+# COMMAND ----------
+
+fig, ax = plt.subplots()
+ax.bar(df_plot['constructorRef'], df_plot['champion'], label = 'champion')
+ax.bar(df_plot['constructorRef'], df_plot['prediction'], label = 'fitted')
+ax.set_xlabel('Constructor')
+ax.set_ylabel('Count')
+plt.xticks(rotation = 45)
+plt.legend()
+
+# COMMAND ----------
+
+df_plot = df_pred1.groupby(['constructorId', 'constructorRef']).agg({'champion':'sum','prediction':'sum'}).reset_index()
+df_plot['false_fit'] = df_plot['prediction'] - df_plot['champion']
+df_plot['%false_fit'] = df_plot['false_fit']/df_plot['prediction']
+df_plot
+
+# COMMAND ----------
+
+fig, ax = plt.subplots()
+ax.bar(df_plot['constructorRef'], df_plot['prediction'], label = 'false fit')
+ax.bar(df_plot['constructorRef'], df_plot['champion'], label = 'champion')
+ax.set_xlabel('Constructor')
+ax.set_ylabel('Count')
+plt.xticks(rotation = 45)
+plt.legend()
+
+# COMMAND ----------
+
+fig, ax = plt.subplots()
+a = df_cham1[df_cham1.prediction ==0]['year']
+b = df_pred1[df_pred1.champion ==0]['year']
+ax.hist([a, b], bins = 6, range = (1950, 2010), rwidth=0.8, label = ['missed', 'false fit'])
+plt.legend()
+
+# COMMAND ----------
+
+len(pd.unique(df_prob_pd.constructorId))
 
 # COMMAND ----------
 
