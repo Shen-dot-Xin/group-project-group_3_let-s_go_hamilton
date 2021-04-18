@@ -1,7 +1,7 @@
 # Databricks notebook source
 # MAGIC %md
 # MAGIC 
-# MAGIC ## driver_results Prediction Model
+# MAGIC ## RF_regression_driver_results Prediction Model
 # MAGIC 
 # MAGIC This file is for creating a Model to Predict (Q2) if a Driver will end up in second position.
 
@@ -73,7 +73,7 @@ driverRaceDF = driverRaceDF.drop("totPitstopDur","avgPitstopDur","countPitstops"
 # COMMAND ----------
 
 # Dropping similar columns to target variables
-driverRaceDF = driverRaceDF.drop("positionOrder","driverRacePoints","drivSecPosCat","raceLaps","driverSeasonPoints","drivSecPos","drivSecPosRM3"," drivSecPosRM2","drivSecPosRM1")
+driverRaceDF = driverRaceDF.drop("positionOrder","finishPosition","drivSecPosCat","raceLaps","driverSeasonPoints","drivSecPos","drivSecPosRM3"," drivSecPosRM2","drivSecPosRM1")
 #driverRaceDF = driverRaceDF.withColumn('drivSecPosCat', driverRaceDF['drivSecPosCat'].cast(DoubleType()))
 
 # COMMAND ----------
@@ -93,15 +93,94 @@ driverRaceTestDF_ml =driverRaceTestDF.select("*").toPandas()
 
 # COMMAND ----------
 
-X_train = driverRaceTrainDF_ml.drop(['finishPosition'], axis=1)
-X_test = driverRaceTestDF_ml.drop(['finishPosition'], axis=1)
-y_train = driverRaceTrainDF_ml['finishPosition']
-y_test = driverRaceTestDF_ml['finishPosition']
+X_train = driverRaceTrainDF_ml.drop(['driverRacePoints'], axis=1)
+X_test = driverRaceTestDF_ml.drop(['driverRacePoints'], axis=1)
+y_train = driverRaceTrainDF_ml['driverRacePoints']
+y_test = driverRaceTestDF_ml['driverRacePoints']
 
 # COMMAND ----------
 
 # MAGIC %md
 # MAGIC Random Forest (Regression)
+
+# COMMAND ----------
+
+def rf_reg(run_name, params, X_train, X_test, y_train, y_test):
+# With autolog() enabled, all model parameters, a model score, and the fitted model are automatically logged.  
+  with mlflow.start_run(run_name=run_name):
+  
+    # Set the model parameters. 
+    #n_estimators = 1000
+    #max_depth = 5
+    #max_features = 5
+
+    # Create and train model.
+    rf = RandomForestRegressor(**params)
+    #rf = RandomForestRegressor(n_estimators = n_estimators, max_depth = max_depth, max_features = max_features)
+    rf.fit(X_train, y_train)
+
+    # Use the model to make predictions on the test dataset.
+    predictions = rf.predict(X_test)
+
+    # Create metrics
+    mse = mean_squared_error(y_test, predictions)
+    mae = mean_absolute_error(y_test, predictions)
+    r2 = r2_score(y_test, predictions)
+    print("  mse: {}".format(mse))
+    print("  mae: {}".format(mae))
+    print("  R2: {}".format(r2))
+
+    # Log metrics
+    mlflow.log_metric("mse", mse)
+    mlflow.log_metric("mae", mae)  
+    mlflow.log_metric("r2", r2) 
+
+    # Create feature importance
+    importance = pd.DataFrame(list(zip(X_train.columns, rf.feature_importances_)), 
+                                columns=["Feature", "Importance"]
+                                ).sort_values("Importance", ascending=False)
+
+    # Log importances using a temporary file
+    temp = tempfile.NamedTemporaryFile(prefix="feature-importance-", suffix=".csv")
+    temp_name = temp.name
+    try:
+      importance.to_csv(temp_name, index=False)
+      mlflow.log_artifact(temp_name, "feature-importance.csv")
+    finally:
+      temp.close() # Delete the temp file
+
+    # Create plot
+    fig, ax = plt.subplots()
+
+    sns.residplot(predictions, y_test, lowess=True)
+    plt.xlabel("Predicted Driver Position")
+    plt.ylabel("Residual")
+    plt.title("Residual Plot")
+
+    # Log residuals using a temporary file
+    temp = tempfile.NamedTemporaryFile(prefix="residuals-", suffix=".png")
+    temp_name = temp.name
+    try:
+      fig.savefig(temp_name)
+      mlflow.log_artifact(temp_name, "residuals.png")
+    finally:
+      temp.close() # Delete the temp file
+
+    display(fig)
+
+# COMMAND ----------
+
+params = {
+  "n_estimators": 1000,
+  "max_depth": 5,
+  "random_state": 40}
+
+rf_reg("Sixth Run", params, X_train, X_test, y_train, y_test)
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC Data of the Best Model
 
 # COMMAND ----------
 
@@ -170,11 +249,19 @@ y_test = driverRaceTestDF_ml['finishPosition']
 predictions = rf.predict(X_test)
 driverRaceDFPred = X_test
 driverRaceDFPred['predictions'] = pd.Series(predictions, index=driverRaceDFPred.index).round(0)
-driverRaceDFPred['finishPosition'] = pd.Series(y_test, index=driverRaceDFPred.index)
+driverRaceDFPred['driverRacePoints'] = pd.Series(y_test, index=driverRaceDFPred.index)
+
+# COMMAND ----------
+
+print(predictions)
 
 # COMMAND ----------
 
 driverRaceDFPred=spark.createDataFrame(driverRaceDFPred) 
+
+# COMMAND ----------
+
+display(driverRaceDFPred)
 
 # COMMAND ----------
 
@@ -188,12 +275,39 @@ driverRaceDFPred= driverRaceDFPred.join(drivers.select(col("driverId"), concat(d
 # COMMAND ----------
 
 # Creating a Binary column that says if a driver finished second or not
-driverRaceDFPred = driverRaceDFPred.withColumn("drivSecPosPred", when(driverRaceDFPred.predictions==2,1) .otherwise(0))
+driverRaceDFPred = driverRaceDFPred.withColumn("drivSecPosPred", when(driverRaceDFPred.predictions==18,1) .otherwise(0))
 display(driverRaceDFPred)
 
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC Model Descriptions: 
-# MAGIC Although the R^2 of the random forest regression model is quite high(57%), the regression model is poor at prediciting the binary question. As shown above, among the testing data (2011-2017), all the prediction are close to the real position but none of them successfully a driver to be in the second place, so the "drivSecPosPred" column are all 0. 
-# MAGIC In this case, we change into random forest classifier model.
+# MAGIC Save the dataframe
+
+# COMMAND ----------
+
+driverRaceDFPred.write.format('jdbc').options(
+      url='jdbc:mysql://gc-gr5069.ccqalx6jsr2n.us-east-1.rds.amazonaws.com/gc2897_gr5069',
+      driver='com.mysql.jdbc.Driver',
+      dbtable='Final_Driver_Predit_Q2_G3',
+      user='admin',
+      password='12345678').mode('overwrite').save()
+
+# COMMAND ----------
+
+driverRaceDFPred_return = spark.read.format("jdbc").option("url", "jdbc:mysql://gc-gr5069.ccqalx6jsr2n.us-east-1.rds.amazonaws.com/gc2897_gr5069") \
+    .option("driver", "com.mysql.jdbc.Driver").option("dbtable", "Final_Driver_Predit_Q2_G3") \
+    .option("user", "admin").option("password", "12345678").load()
+
+# COMMAND ----------
+
+display(driverRaceDFPred_return)
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC However, we are still unsatisfied with the result and try to figure out better models. In this case, we use Random Forest Regression model as alternative. For Regression model, we change the output from “finishposition” into “driverRacePoints”. The R^2 is pretty high (69%), yet, the new issue is that the regression does not directly provide the prediction accuracy. In this case, we need to manual calculate the accuracy. Manually, we consider drivers who have the predicted “driverRacePoints” around 18 (17,18, and 19) as in the second place. And the accuracy is XX. Finally, we believe this model is good enough for prediction.
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC Visualization is in the Superset
