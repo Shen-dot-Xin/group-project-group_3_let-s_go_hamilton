@@ -16,6 +16,9 @@ The rest of the features in the features pool include circuits, constructor rank
 
 The model handles the data relatively well. 
 
+![ROC curve]
+![alt text](https://github.com/QMSS-GR5069-Spring2021/group-project-group_3_let-s_go_hamilton/reports/figures/ROC-Curve.png)
+
 1. Area under ROC curve
 2. F measure
 3. Confusion Matrix
