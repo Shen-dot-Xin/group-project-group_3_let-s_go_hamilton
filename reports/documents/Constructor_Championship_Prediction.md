@@ -34,9 +34,9 @@ obtained in (3). How different are they? Why are they different?
 
 
 ### 3. The most important variable in (3) is bound to also be included in your predictive model. Provide marginal effects or some metric of importance for this variable and make an explicit comparison of this value with the values that you obtained in (3). How different are they? Why are they different?
-    - Marginal effects of "lag1_avg" and "race_count"
+   - Marginal effects of "lag1_avg" and "race_count"
     
-    - Comparing variables in question (3) and (4)
+   - Comparing variables in question (3) and (4)
     The two common features of Models in question (3) and (4) are "lag1_avg" and "race_count". In model (3), the importance of these two features are 2.72 for "lag1_avg" and 3.42 for "race_count". In model (4), the importance of "lag1_avg" goes down to 2.26. It may be beacuse of more features representing performance in last season were introduced in model (4), for instance, "lag1_pst" could also show the perfomance of the drivers selected by the constructor in last season, and this feature is important in my model as well. As for "race_count", the importance of it raise up in question (4) than that of question (3). I suppose the difference is due to the selection of other variables. "avg_fastestlap", "lag1_pst" and "engineproblem" are key features in determining whether the constructor would lose the season. Since these variables with negative importance were introduced in Model (4), the importance of "race_count" may be increased along with it.
     
 
