@@ -16,9 +16,12 @@
 
 ## Model Fit Statistics
 
-![Q1_ROC_curve](https://github.com/QMSS-GR5069-Spring2021/group-project-group_3_let-s_go_hamilton/blob/main/reports/figures/Q1_ROC_curve.png)
+![Q1_ROC_curve](https://github.com/QMSS-GR5069-Spring2021/group-project-group_3_let-s_go_hamilton/blob/main/reports/figures/Q1_roc_curve.png)
 
-![Q1_precision_recall_curve](https://github.com/QMSS-GR5069-Spring2021/group-project-group_3_let-s_go_hamilton/blob/main/reports/figures/Q1_preceision_recall.png)
+![Q1_precision_recall_curve](https://github.com/QMSS-GR5069-Spring2021/group-project-group_3_let-s_go_hamilton/blob/main/reports/figures/Q1_precision_recall_curve.png)
+
+![Q1_beta_coefficients](https://github.com/QMSS-GR5069-Spring2021/group-project-group_3_let-s_go_hamilton/blob/main/reports/figures/Q1_beta_coefficients.png)
+
 
 ### Model Feature Importance 
 
