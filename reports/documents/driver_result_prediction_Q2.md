@@ -55,6 +55,8 @@ As shown in the figures, the accuracy on 1 keep increasing, and the average accu
 
 The feature importance for Q1:
  ![feature_1](https://github.com/QMSS-GR5069-Spring2021/group-project-group_3_let-s_go_hamilton/blob/main/reports/figures/Q2_most_feature_1.png)
+ 
+ 
 The feature importance for Q2:
 ![feature_2_2](https://github.com/QMSS-GR5069-Spring2021/group-project-group_3_let-s_go_hamilton/blob/main/reports/figures/Q2_most_feature_2.png)
  
