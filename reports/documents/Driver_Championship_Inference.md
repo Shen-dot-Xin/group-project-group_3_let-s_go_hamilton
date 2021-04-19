@@ -38,7 +38,20 @@
 ## Most Important Variable 
 
 ## Marginal Effects & Story
+
 Marginal effects for continuous variables measure the instantaneous rate of change for any variable i.e for a unit change in the feature(Independent variable) what is the likelihood of increasing probability of the outcome to be 1.
+
+| Features           	| Coefficients   	| Marginal Effect Interpretation                                                                                                                                                           	|
+|--------------------	|----------------	|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------	|
+| drivSecPosRM3      	| 0.703767601    	| For every unit increase in the binary value of second position in 3rd previous race i.e from 0 to 1, the logit or the log odds of the driver coming in second position increases by 0.70 	|
+| driverRacePoints   	| 0.37644337     	| For every unit increase in driverRacePoints, the logit or the log odds of the driver coming in second position increases by 0.37                                                         	|
+| drivSecPosRM2      	| 0.2545058784   	| For every unit increase in the binary value of second position in last-before race i.e from 0 to 1, the logit or the log odds of the driver coming in second position increases by 0.257 	|
+| drivSecPosRM1      	| 0.2460997724   	| For every unit increase in the binary value of second position in last race i.e from 0 to 1, the logit or the log odds of the driver coming in second position increases by 0.246        	|
+| driverSeasonPoints 	| -0.01029259517 	| For every unit increase in driverSeasonPoints, the logit or the log odds of the driver coming in second position decreases by -0.010                                                     	|
+| gridPosition       	| -0.09021629253 	| For every unit increase in gridPosition  the logit or the log odds of the driver coming in second position decreases by 0.09                                                             	|
+
+
+
 
 
 
