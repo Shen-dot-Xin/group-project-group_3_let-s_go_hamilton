@@ -1,10 +1,8 @@
 ### Constructor_Championship_Prediction
-1. Describe your model, and explain how you selected the features that were selected
-2. Provide statistics that show how good your model is at predicting, and how well it performed predicting constructors
-success between 2011 and 2017
-3. The most important variable in (3) is bound to also be included in your predictive model. Provide marginal effects or
-some metric of importance for this variable and make an explicit comparison of this value with the values that you
-obtained in (3). How different are they? Why are they different?
+
+> 1. Describe your model, and explain how you selected the features that were selected
+> 2. Provide statistics that show how good your model is at predicting, and how well it performed predicting constructors success between 2011 and 2017
+> 3. The most important variable in (3) is bound to also be included in your predictive model. Provide marginal effects or some metric of importance for this variable and make an explicit comparison of this value with the values that you obtained in (3). How different are they? Why are they different?
 
 
 ### 1. Describe your model, and explain how you selected the features that were selected
