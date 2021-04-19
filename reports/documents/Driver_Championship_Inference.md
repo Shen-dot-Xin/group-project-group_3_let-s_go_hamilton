@@ -1,6 +1,9 @@
 
 ## Model Description 
 
+As per the question required, I choose data from between 1950 to 2010 and looked at all races data, explored a few features and conducted some exploratory analysis. I decided to use Logistic Regression model after trying a few higher-order Classifier models. 
+
+The Logistic model was given a Binary column of whether or not a driver ended up in second position as Y and a list of six features to model based on the features are explained in further sections of the document. 
 
 ## Feature Selection and reasoning
 
@@ -16,9 +19,20 @@
 
 ## Model Fit Statistics
 
+### ROC Curve
+ROC is a probability curve and AUC represents degree or measure of separability. ROC tells how much model is capable of distinguishing between classes. Higher the AUC, better the model is at predicting if a driver will end up in second position or not. The fitted Model perfoemd quite wel the are under ROC curve for the model was 0.950 [Source](https://machinelearningmastery.com/roc-curves-and-precision-recall-curves-for-classification-in-python/)
+
 ![Q1_ROC_curve](https://github.com/QMSS-GR5069-Spring2021/group-project-group_3_let-s_go_hamilton/blob/main/reports/figures/Q1_roc_curve.png)
 
+### Precision and Recall Curve
+The precision-recall curve shows the tradeoff between precision and recall for different threshold. A high area under the curve represents both high recall and high precision, where high precision relates to a low false positive rate, and high recall relates to a low false negative rate.[Sklearn](https://scikit-learn.org/stable/auto_examples/model_selection/plot_precision_recall.html)
+
 ![Q1_precision_recall_curve](https://github.com/QMSS-GR5069-Spring2021/group-project-group_3_let-s_go_hamilton/blob/main/reports/figures/Q1_precision_recall_curve.png)
+
+### beta Coefficients
+
+
+The beta coefficient is the degree of change in the outcome variable for every 1-unit of change in the predictor variable. The t-test assesses whether the beta coefficient is significantly different from zero.
 
 ![Q1_beta_coefficients](https://github.com/QMSS-GR5069-Spring2021/group-project-group_3_let-s_go_hamilton/blob/main/reports/figures/Q1_beta_coefficients.png)
 
