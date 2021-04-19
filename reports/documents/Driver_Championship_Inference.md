@@ -37,7 +37,7 @@ The beta coefficient is the degree of change in the outcome variable for every 1
 ![Q1_beta_coefficients](https://github.com/QMSS-GR5069-Spring2021/group-project-group_3_let-s_go_hamilton/blob/main/reports/figures/Q1_beta_coefficients.png)
 
 
-### Model Feature Importance 
+## Model Feature Importance 
 
 | Features           	| Importance     	|
 |--------------------	|----------------	|
@@ -49,7 +49,10 @@ The beta coefficient is the degree of change in the outcome variable for every 1
 | gridPosition       	| -0.09021629253 	|
 
 
-## Most Important Variable 
+#### Most Important Variable 
+
+The most important variable from the above Matrix is actually the **driverRacePoints** since it was able to predict the log-odds most effectively **drivSecPosRM3**
+has a marginally high p-value (0.067) and hence not so significant. 
 
 ## Marginal Effects & Story
 
@@ -66,7 +69,9 @@ Marginal effects for continuous variables measure the instantaneous rate of chan
 
 
 
-
-
+The story that one can knit together from above feature importances, marginal effects/coefficients is that a driver ending up in second position or not is determined by the above features and we can say that if a driver dis end up in second position or not in each of the last 2 races determine or increase his log-odds of taking second position in the next race by 0.25 units! which is very significant and the same is a driver goes behind in the grid position then it decreases the log-odds by 0.10 units
 
 ## Is it an Explanation or Simply an Association?
+
+It is an explanation, given if we say that we have a good overview of all variables that are relevant in the context of F1 race, we are arguing for the logical relation between each and using them in our Models with reasoning. Shalit's point about measurement error and also the fact that explanatory (data) models are - and must be - simplifications of observed reality by construction. In this project we can say that we have a lot of features and information and hence we do have a good overview of how variables and combination of varaibles are interacting with each other. Hence when we model based on that we can say that the Model coefficients are more than simply association and are indeed explanatory. 
+
