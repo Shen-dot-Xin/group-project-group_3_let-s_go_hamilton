@@ -21,6 +21,7 @@
 
 ### 2. Provide statistics that show how good your model is at predicting, and how well it performed predicting constructors success between 2011 and 2017
    <img width="431" alt="Screen Shot 2021-04-18 at 11 56 51 PM" src="https://user-images.githubusercontent.com/77648357/115179666-d645a780-a0a1-11eb-8477-53014281f3d4.png">
+  
    - Accuracy of my model: 0.955
    - False positive rate: 0.589
    - test area under ROC curve: 0.976
