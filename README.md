@@ -32,7 +32,6 @@ Shen Xin: Collaborated with Yixuan on the data pipeline and feature cleaning for
 ├── reports/
 	├── documents
 	├── figures
-├── references/
 ├── README.md
 ```
 
