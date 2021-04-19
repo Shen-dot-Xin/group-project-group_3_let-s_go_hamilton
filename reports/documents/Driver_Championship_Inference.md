@@ -20,8 +20,30 @@
 
 ## Model Fit Statistics
 
+![Q1_ROC_curve](https://github.com/QMSS-GR5069-Spring2021/group-project-group_3_let-s_go_hamilton/blob/main/reports/figures/Q1_ROC_curve.png)
+
+![Q1_precision_recall_curve](https://github.com/QMSS-GR5069-Spring2021/group-project-group_3_let-s_go_hamilton/blob/main/reports/figures/Q1_preceision_recall.png)
+
+### Model Feature Importance 
+
+| Feature       	    |Feature Coefficients|
+|--------------------	|------------------	|
+| drivSecPosRM3       | 0.9107840875      |
+| drivSecPosRM2      	| 0.6872625734     	|
+| drivSecPosRM1      	| 0.4855982405     	|
+| driverRacePoints   	| 0.4443269082     	|
+| constSeasonWins    	| 0.02519453535    	|
+| resultId           	| 9.97E-08         	|
+| driverSeasonPoints 	| -0.0001155720202 	|
+| raceYear           	| -0.0006878917667 	|
+| constSeasonPoints  	| -0.001969819308  	|
+| driverSeasonWins   	| -0.2049255411    	|
+
+
+
 ## Most Important Variable 
 
 ## Marginal Effects & Story
+Marginal effects for continuous variables measure the instantaneous rate of change for any variable
 
 ## Is it an Explanation or Simply an Association?
