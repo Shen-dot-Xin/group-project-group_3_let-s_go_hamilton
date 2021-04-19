@@ -52,15 +52,17 @@ As shown in the figures, the accuracy on 1 keep increasing, and the average accu
 
 #### Feature Importance
 > - the most important variable in (1) is bound to also be included in your predictive model. Provide marginal effects or some metric of importance for this variable and make an explicit comparison of this value with the values that you obtained in (1). How different are they? Why are they different?
-According to our model, the top 5 important features are as below:
- 
-The marginal effect of the “driverStPosition” is:
-Before dropping:
- 
-After dropping:
- 
 
-Both
+The feature importance for Q1:
+ ![feature_1](https://github.com/QMSS-GR5069-Spring2021/group-project-group_3_let-s_go_hamilton/blob/main/reports/figures/Q2_most_feature_1.png)
+The feature importance for Q2:
+![feature_2](https://github.com/QMSS-GR5069-Spring2021/group-project-group_3_let-s_go_hamilton/blob/main/reports/figures/Q2_most_feature_2.png)
  
-Compare with most important variable in Q1, the difference are:
+According to the model in Q1, the most important features is the “drivSecRM3”, which is a binary column that says if a driver finished second or not in the two-races-before one. Since we are using regression model instead of classifier model, we did not directly include this feature into our model in Q2. Alternatively, we change the binary variable into “finishPositionRM3”, which is the driver’s race point in the two-races-before. Although these two variables mean very different value in training the model, but it means the same thing (how drivers perform in the two-races-before one) in the real world.
+As a result, the feature importance of this variable significantly decreases. From 0.70 to 0.002. If we drop the variable in model Q2, the R^2 will only decrease from 0.69 to 0.688, the marginal effect is also quite small. 
+There are several reasons for the change:
+1.	Different variable construction. In model Q1, we use binary variables to symbolize the performance in the two-races-before one. However, in model Q2, we use non-binary variables to symbolize. In question 2, the prediction is much complicated, not just 1 or 0, but the actual race points drivers get in the race. Thus, the importance decreases.
+2.	More features in the model Q2. In model Q2, we have much more features, which will dilute power of the features we also used in the model Q1.
+3.	A dominated feature in model Q2. In model Q2, we add a very important feature, “driverStPosition”, which is the driver’s seasonal performance (ranking). This is a feature with very strong predicting power. Intuitively, second place is still very hard to get. If the driver can get many second place in the season, he can will be definitely on the top of the ranking.
+
 
