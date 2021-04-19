@@ -17,7 +17,7 @@ Guankun Chen: Collaborated with Pruthvi on the data pipeline and feature cleanin
 
 Yixuan Li: Collaborated with Shen on the data pipeline and feature cleaning for Q3 and Q4. Completed Q4, the constructor championship prediction problem. 
 
-Pruthvi Panati:
+Pruthvi Panati: Collaborated with Guankun on the data pipeline and feature cleaning for Q1 and Q2. Completed Q1, the driver result inference problem. 
 
 Shen Xin: Collaborated with Yixuan on the data pipeline and feature cleaning for Q3 and Q4. Completed Q3, the constructor championship inference problem. 
 
