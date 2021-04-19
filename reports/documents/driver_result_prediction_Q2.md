@@ -4,7 +4,7 @@ From your fitted model:
 ● describe your model, and explain how you selected the features that were selected
 
 Model selection:
-Our best model is the Random Forest Regression model with 0.69 R^2 and XX% accuracy. 
+Our best model is the Random Forest Regression model with 0.69 R^2 , 92% overall accuracy (both 0 and 1) and 50% actual accuracy (only predicting 1) . 
 The model selection period is quite hard.
 1.	At the beginning, we use the Random Forest Classifier model (see part_1). To predict whether the driver comes in the second place, we use binary prediction output (second place = 1, otherwise = 0). Although the model provides unusually high accuracy (0.95), the actual prediction power of the model is low. The binary learning output makes the model to predict all the result as 0 and still get a high accuracy, the other measurement scores are quite low (almost all 0). This model actually overlooks many important informations when it consider all non-second place data as the same 0.
  ![binary_metrics](https://github.com/QMSS-GR5069-Spring2021/group-project-group_3_let-s_go_hamilton/blob/main/reports/figures/Q2_Binary_Metrics.png)
