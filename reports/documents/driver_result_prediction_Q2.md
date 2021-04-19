@@ -44,6 +44,9 @@ The predicting performance between 2011 and 2017 is as below:
 ![overall_accuracy](https://github.com/QMSS-GR5069-Spring2021/group-project-group_3_let-s_go_hamilton/blob/main/reports/figures/Q2_Overall_Accuracy.png)
 ![actual_accuracy](https://github.com/QMSS-GR5069-Spring2021/group-project-group_3_let-s_go_hamilton/blob/main/reports/figures/Q2_Actual_accuracy_as1.png)
 
+As shown in the figures, the accuracy on 1 keep increasing, and the average accuracy is almost 50%. A 50% accuracy is quite high for prediciting a specific ranking in the race. We are statisfied with the model.
+
+
 
 ● the most important variable in (1) is bound to also be included in your predictive model. Provide marginal effects or some metric of importance for this variable and make an explicit comparison of this value with the values that you obtained in (1). How different are they? Why are they different?
 According to our model, the top 5 important features are as below:
