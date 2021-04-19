@@ -51,8 +51,7 @@ The beta coefficient is the degree of change in the outcome variable for every 1
 
 #### Most Important Variable 
 
-The most important variable from the above Matrix is actually the **driverRacePoints** since it was able to predict the log-odds most effectively **drivSecPosRM3**
-has a marginally high p-value (0.067) and hence not so significant. 
+The most important variable from the above Matrix is actually the **driverRacePoints** since it was able to predict the log-odds most effectively. Another features shows up high in the coefficients i.e **drivSecPosRM3** has a marginally high p-value (0.067) and hence not so significant and we chose not to infer conclusions from it.
 
 ## Marginal Effects & Story
 
