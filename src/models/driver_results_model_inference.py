@@ -21,13 +21,8 @@ import matplotlib.pyplot as plt
 from numpy import savetxt
 
 import mlflow.sklearn
-from sklearn.model_selection import train_test_split
-from sklearn.datasets import load_diabetes
 
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
-from sklearn.model_selection import train_test_split
-
+from pyspark.ml.regression import GeneralizedLinearRegression
 from pyspark.ml.classification import LogisticRegression
 from pyspark.ml.feature import VectorAssembler,StandardScaler,StringIndexer
 from pyspark.ml.evaluation import BinaryClassificationEvaluator
@@ -44,27 +39,16 @@ driverRaceFeat = driverRaceFeat.drop('_c0')
 # COMMAND ----------
 
 # Dropping the pitstops data since this data is only available post 2011 races
-#driverRaceDF = driverRaceDF.drop("totPitstopDur","avgPitstopDur","countPitstops","firstPitstopLap","raceDate")
 
-# Dropping similar columns to target variables
-#driverRaceDF = driverRaceDF.drop("positionOrder","finishPosition")
+driverRaceDF = driverRaceFeat.select('raceYear','driverRacePoints', 'gridPosition','driverSeasonPoints',
+                                      'drivSecPosRM1','drivSecPosRM2','drivSecPosRM3', 'drivSecPos')
 
-
-driverRaceDF = driverRaceFeat.select.('resultId', 'raceYear',
-                                      'driverRacePoints', 'driverSeasonPoints', 'driverSeasonWins',
-                                      'constSeasonPoints', 'constSeasonWins', 
-                                     'drivSecPosRM1','drivSecPosRM2','drivSecPosRM3', 'drivSecPos')
-
-
-# ('raceId', 'driverId', 'constructorId', 'resultId', 'raceYear', 'gridPosition','driverRacePoints', 'driverStPosition',
-#                                     'driverSeasonPoints', 'driverSeasonWins', 'constStPosition','constSeasonPoints', 'constSeasonWins', 
-#                                     'drivSecPosRM1','drivSecPosRM2','drivSecPosRM3', 'drivSecPos')
 
 # COMMAND ----------
 
 # MAGIC %md
 # MAGIC 
-# MAGIC # Logistic Regression 
+# MAGIC # Logistic Regression using Pyspark ML
 
 # COMMAND ----------
 
@@ -74,9 +58,7 @@ driverRaceDF = driverRaceFeat.select.('resultId', 'raceYear',
 # COMMAND ----------
 
 ## Transforming a selection of features into a vector using VectorAssembler.
-vecAssembler = VectorAssembler(inputCols = ['resultId', 'raceYear',
-                                            'driverRacePoints', 'driverSeasonPoints', 'driverSeasonWins',
-                                            'constSeasonPoints', 'constSeasonWins', 
+vecAssembler = VectorAssembler(inputCols = ['driverRacePoints', 'gridPosition','driverSeasonPoints',
                                             'drivSecPosRM1','drivSecPosRM2','drivSecPosRM3'], outputCol = "vectorized_features")
 
 #
@@ -127,20 +109,15 @@ driverRaceDF=label_indexer_model.transform(driverRaceDF)
 #Splitting the data frame into Train and Test data based on the requirements of the Project and converting them to Pandas Dataframes
 driverRaceDF = driverRaceDF.filter(driverRaceDF.raceYear <= 2010)
 
+#Dropping the raceyear column before splitting
+driverRaceDF = driverRaceDF.drop('raceYear')
+
 driverRaceTrainDF, driverRaceTestDF = driverRaceDF.randomSplit([0.8,0.2], seed=2018)
 
 # COMMAND ----------
 
-driverRaceTrainDF.groupby('label').count().show()
-
-# COMMAND ----------
-
-driverRaceTestDF.groupby('label').count().show()
-
-# COMMAND ----------
-
 # MAGIC %md 
-# MAGIC ## Model Training with ML FLow
+# MAGIC ## Model Training with ML FLow - Linear Regression
 
 # COMMAND ----------
 
@@ -253,16 +230,33 @@ with mlflow.start_run():
 
 # COMMAND ----------
 
-logrModel.coefficients
+# MAGIC %md
+# MAGIC 
+# MAGIC # Logistic Regression using Statmodels API
 
 # COMMAND ----------
 
-trainingSummary.pValues
+
+# importing libraries
+import statsmodels.api as sm
+import pandas as pd 
+
+# defining the dependent and independent variables
+Xtrain = driverRaceTrainDF.select('driverRacePoints', 'gridPosition','driverSeasonPoints',
+                                      'drivSecPosRM1','drivSecPosRM2','drivSecPosRM3').toPandas() 
+ytrain = driverRaceTrainDF.select('drivSecPos').toPandas()
+   
+# building the model and fitting the data
+log_reg = sm.Logit(ytrain, Xtrain).fit()
+
+
+# printing the summary table
+print(log_reg.summary())
 
 # COMMAND ----------
 
 # MAGIC %md 
-# MAGIC ## Prediction
+# MAGIC #### Prediction
 
 # COMMAND ----------
 
@@ -281,44 +275,6 @@ print("Accuracy : ",accuracy)
 
 # COMMAND ----------
 
-# Obtain the objective per iteration
-objectiveHistory = trainingSummary.objectiveHistory
-print("objectiveHistory:")
-for objective in objectiveHistory:
-    print(objective)
-
-# for multiclass, we can inspect metrics on a per-label basis
-print("False positive rate by label:")
-for i, rate in enumerate(trainingSummary.falsePositiveRateByLabel):
-    print("label %d: %s" % (i, rate))
-
-print("True positive rate by label:")
-for i, rate in enumerate(trainingSummary.truePositiveRateByLabel):
-    print("label %d: %s" % (i, rate))
-
-print("Precision by label:")
-for i, prec in enumerate(trainingSummary.precisionByLabel):
-    print("label %d: %s" % (i, prec))
-
-print("Recall by label:")
-for i, rec in enumerate(trainingSummary.recallByLabel):
-    print("label %d: %s" % (i, rec))
-
-print("F-measure by label:")
-for i, f in enumerate(trainingSummary.fMeasureByLabel()):
-    print("label %d: %s" % (i, f))
-
-accuracy = trainingSummary.accuracy
-falsePositiveRate = trainingSummary.weightedFalsePositiveRate
-truePositiveRate = trainingSummary.weightedTruePositiveRate
-fMeasure = trainingSummary.weightedFMeasure()
-precision = trainingSummary.weightedPrecision
-recall = trainingSummary.weightedRecall
-print("Accuracy: %s\nFPR: %s\nTPR: %s\nF-measure: %s\nPrecision: %s\nRecall: %s"
-      % (accuracy, falsePositiveRate, truePositiveRate, fMeasure, precision, recall))
-
-# COMMAND ----------
-
 # MAGIC %md 
 # MAGIC #### Model Evaluation 
 
@@ -326,34 +282,3 @@ print("Accuracy: %s\nFPR: %s\nTPR: %s\nF-measure: %s\nPrecision: %s\nRecall: %s"
 
 evaluator= BinaryClassificationEvaluator()
 print('Test Area Under ROC', evaluator.evaluate(predictions))
-
-# COMMAND ----------
-
-from pyspark.ml.tuning import ParamGridBuilder, CrossValidator
-
-# Create ParamGrid for Cross Validation
-paramGrid = (ParamGridBuilder()
-             .addGrid(logrModel.regParam, [0.01, 0.5, 2.0])# regularization parameter
-             .addGrid(logrModel.elasticNetParam, [0.0, 0.5, 1.0])# Elastic Net Parameter (Ridge = 0)
-             .addGrid(logrModel.maxIter, [1, 5, 10])#Number of iterations
-             .build())
-
-cv = CrossValidator(estimator=logrModel, estimatorParamMaps=paramGrid, 
-                    evaluator=evaluator, numFolds=5)
-
-cvModel = cv.fit(driverRaceTrainDF)
-
-# COMMAND ----------
-
-driverRaceDF.toPandas().head()
-
-# COMMAND ----------
-
-driverRaceDF.display()
-
-# COMMAND ----------
-
-driverRaceFeat.columns
-
-# COMMAND ----------
-
