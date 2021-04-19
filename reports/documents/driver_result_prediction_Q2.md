@@ -40,7 +40,7 @@ Non-binary:
  ![non-binary_metrics](https://github.com/QMSS-GR5069-Spring2021/group-project-group_3_let-s_go_hamilton/blob/main/reports/figures/Q2_Non-Binary_Metrics.png)
 In this case, we choose random forest regression model. After parameter adjustment, we come up with our optimal model with best prediction power (parameters: "n_estimators": 1000, "max_depth": 5, "random_state": 10), the performance of its predicting second places in races between 2011 and 2017 is as below:
   ![mlflow](https://github.com/QMSS-GR5069-Spring2021/group-project-group_3_let-s_go_hamilton/blob/main/reports/figures/Q2_MLflow_result.png)
-The predicting performance between 2011 and 2017 is as below:
+The predicting performance between 2011 and 2017 is as below, we calculate it via Superset(http://ec2-3-84-157-243.compute-1.amazonaws.com:8088/r/36; http://ec2-3-84-157-243.compute-1.amazonaws.com:8088/r/37）:
 ![overall_accuracy](https://github.com/QMSS-GR5069-Spring2021/group-project-group_3_let-s_go_hamilton/blob/main/reports/figures/Q2_Overall_Accuracy.png)
 ![actual_accuracy](https://github.com/QMSS-GR5069-Spring2021/group-project-group_3_let-s_go_hamilton/blob/main/reports/figures/Q2_Actual_accuracy_as1.png)
 
