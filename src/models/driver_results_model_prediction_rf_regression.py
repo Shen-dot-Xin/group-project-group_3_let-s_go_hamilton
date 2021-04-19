@@ -68,13 +68,12 @@ driverRaceDF = driverRaceDF.withColumn("finishPositionRM3", when(driverRaceDF["f
 # COMMAND ----------
 
 # Dropping the pitstops data since this data is only available post 2011 races
-driverRaceDF = driverRaceDF.drop("totPitstopDur","avgPitstopDur","countPitstops","firstPitstopLap","raceDate")
+driverRaceDF = driverRaceDF.drop("totPitstopDur","avgPitstopDur","countPitstops","firstPitstopLap","raceDate","constSeasonPoints","resultId")
 
 # COMMAND ----------
 
 # Dropping similar columns to target variables
 driverRaceDF = driverRaceDF.drop("positionOrder","finishPosition","drivSecPosCat","raceLaps","driverSeasonPoints","drivSecPos","drivSecPosRM3"," drivSecPosRM2","drivSecPosRM1")
-#driverRaceDF = driverRaceDF.withColumn('drivSecPosCat', driverRaceDF['drivSecPosCat'].cast(DoubleType()))
 
 # COMMAND ----------
 
@@ -173,7 +172,7 @@ def rf_reg(run_name, params, X_train, X_test, y_train, y_test):
 params = {
   "n_estimators": 1000,
   "max_depth": 5,
-  "random_state": 40}
+  "random_state": 20}
 
 rf_reg("Sixth Run", params, X_train, X_test, y_train, y_test)
 
@@ -275,8 +274,17 @@ driverRaceDFPred= driverRaceDFPred.join(drivers.select(col("driverId"), concat(d
 # COMMAND ----------
 
 # Creating a Binary column that says if a driver finished second or not
-driverRaceDFPred = driverRaceDFPred.withColumn("drivSecPosPred", when(driverRaceDFPred.predictions==18,1) .otherwise(0))
+driverRaceDFPred = driverRaceDFPred.withColumn("drivSecPosPred", when((driverRaceDFPred.predictions >=15) & (driverRaceDFPred.predictions <= 19),1) .otherwise(0))
 display(driverRaceDFPred)
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC Accuracy Calculation
+
+# COMMAND ----------
+
+
 
 # COMMAND ----------
 
@@ -305,7 +313,7 @@ display(driverRaceDFPred_return)
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC However, we are still unsatisfied with the result and try to figure out better models. In this case, we use Random Forest Regression model as alternative. For Regression model, we change the output from “finishposition” into “driverRacePoints”. The R^2 is pretty high (69%), yet, the new issue is that the regression does not directly provide the prediction accuracy. In this case, we need to manual calculate the accuracy. Manually, we consider drivers who have the predicted “driverRacePoints” around 18 (17,18, and 19) as in the second place. And the accuracy is XX. Finally, we believe this model is good enough for prediction.
+# MAGIC However, we are still unsatisfied with the result and try to figure out better models. In this case, we use Random Forest Regression model as alternative. For Regression model, we change the output from “finishposition” into “driverRacePoints”. The R^2 is pretty high (69%), yet, the new issue is that the regression does not directly provide the prediction accuracy. In this case, we need to manual calculate the accuracy. Manually, we consider drivers who have the predicted “driverRacePoints” around 18 (16,17,18, and 19) as in the second place. And the accuracy is XX. Finally, we believe this model is good enough for prediction.
 
 # COMMAND ----------
 
