@@ -13,7 +13,7 @@ Term: Spring 2021
 	
 ### Contribution statement
 
-Guankun Chen: 
+Guankun Chen: Collaborated with Pruthvi on the data pipeline and feature cleaning for Q1 and Q2. Completed Q2, the driver result prediction problem. 
 
 Yixuan Li: Collaborated with Shen on the data pipeline and feature cleaning for Q3 and Q4. Completed Q4, the constructor championship prediction problem. 
 
