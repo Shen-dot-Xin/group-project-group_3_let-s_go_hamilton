@@ -31,7 +31,7 @@ The model handles the data relatively well.
 ![ROC Curve](https://github.com/QMSS-GR5069-Spring2021/group-project-group_3_let-s_go_hamilton/blob/main/reports/figures/ROC-Curve.png)
 ![Precision Recall Curve](https://github.com/QMSS-GR5069-Spring2021/group-project-group_3_let-s_go_hamilton/blob/main/reports/figures/Precision-Recall.png)
 
-After the fitting the data, the area under ROC curve reaches 0.928. The F score is 0.945, the precision is 0.945 and the recall is 0.95. 
+The fitted model has the area under ROC curve of 0.928. The F score is 0.945, with a the precision of 0.944 and a recall of 0.95. 
 
 #### Marginal Effect of Features
 <p align="center">
