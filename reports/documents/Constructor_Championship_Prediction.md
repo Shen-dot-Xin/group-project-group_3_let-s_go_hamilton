@@ -25,6 +25,13 @@
    - test area under ROC curve: 0.976
    - true positive rate: 0.955
    - Test set score: 0.79
+   
+   <img width="402" alt="Q4_3 precision-recall curve" src="https://user-images.githubusercontent.com/77648357/115179433-4bfd4380-a0a1-11eb-9d08-4995a36b5984.png">
+   
+<img width="402" alt="Q4_5 ROC curve" src="https://user-images.githubusercontent.com/77648357/115179383-36881980-a0a1-11eb-8b7f-24ed83531a5a.png">
+   
+   <img width="402" alt="Q4_4 coefficients graph" src="https://user-images.githubusercontent.com/77648357/115179399-3ee05480-a0a1-11eb-9bb4-4e79c78d35f0.png">
+
    - The importance of each feature is as follows: "race_count" is 5.46, "lag1_avg" is 2.26, "avg_fastestspeed" is 1.48, "lag2_pst" is 1.10, “engineproblem” is -0.73, "avg_fastestlap" is -2.08, “lag1_pst” is -2.17 and "lag1_ptc" equals 0.
   The top 3 important features in my model is race_count, "lag1_avg" and "lag1_pst". From these features, there are several comclusions that could be given. 
   1) The constructor's average performance in last season, including average points and positions. This means that if a constructor is good at selecting great drivers in last season, the possiblity that it win this season would increase. 
