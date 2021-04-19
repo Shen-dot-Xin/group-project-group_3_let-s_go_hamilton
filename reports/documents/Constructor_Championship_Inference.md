@@ -50,4 +50,4 @@ The average driver points per race the constructor obtained in the last season, 
 ![Championship](https://github.com/QMSS-GR5069-Spring2021/group-project-group_3_let-s_go_hamilton/blob/main/reports/figures/Championship_fitted.png)
 ![Fitted](https://github.com/QMSS-GR5069-Spring2021/group-project-group_3_let-s_go_hamilton/blob/main/reports/figures/Fit_by_Championship.png)
 
-In fact, giving weights to last year performance result in a better of the model over constructors with consecutive and multiple wins, such as Ferrari, Williams and Mclaren. The three are also among the teams with the least rebranding and name-changing drama, which could indicate some consistancy in their performance. 
+In fact, giving weights to last year performance result in a better performance of the model over constructors with consecutive and multiple wins, such as Ferrari, Williams and Mclaren. The three are also among the teams with the least rebranding and name-changing drama, which could indicate some consistancy in their performance. 
