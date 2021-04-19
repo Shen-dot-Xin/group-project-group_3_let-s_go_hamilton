@@ -58,7 +58,7 @@ The feature importance for Q1:
  
  
 The feature importance for Q2:
-![feature_2_2](https://github.com/QMSS-GR5069-Spring2021/group-project-group_3_let-s_go_hamilton/blob/main/reports/figures/Q2_most_feature_2.png)
+![feature_2_2](https://github.com/QMSS-GR5069-Spring2021/group-project-group_3_let-s_go_hamilton/blob/main/reports/figures/Q2_most_feature_3.png)
  
 According to the model in Q1, the most important features is the “drivSecRM3”, which is a binary column that says if a driver finished second or not in the two-races-before one. Since we are using regression model instead of classifier model, we did not directly include this feature into our model in Q2. Alternatively, we change the binary variable into “finishPositionRM3”, which is the driver’s race point in the two-races-before. Although these two variables mean very different value in training the model, but it means the same thing (how drivers perform in the two-races-before one) in the real world.
 As a result, the feature importance of this variable significantly decreases. From 0.70 to 0.002. If we drop the variable in model Q2, the R^2 will only decrease from 0.69 to 0.688, the marginal effect is also quite small. 
