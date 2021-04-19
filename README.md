@@ -15,9 +15,9 @@ Term: Spring 2021
 
 Guankun Chen: 
 
-Shen Xin:  
+Shen Xin: Collaborated with Yixuan on the data pipeline and feature cleaning for Q3 and Q4. Completed Q3, the constructor championship inference problem. 
 
-Yixuan Li:
+Yixuan Li: Collaborated with Shen on the data pipeline and feature cleaning for Q3 and Q4. Completed Q4, the constructor championship prediction problem. 
 
 Pruthvi Panati:
 
