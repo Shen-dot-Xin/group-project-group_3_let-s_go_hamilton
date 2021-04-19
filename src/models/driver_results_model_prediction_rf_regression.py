@@ -1,9 +1,9 @@
 # Databricks notebook source
 # MAGIC %md
 # MAGIC 
-# MAGIC ## RF_regression_driver_results Prediction Model
+# MAGIC ## RF_regression_driver_results Prediction Model_part_3
 # MAGIC 
-# MAGIC This file is for creating a Model to Predict (Q2) if a Driver will end up in second position.
+# MAGIC However, we are still unsatisfied with the result and try to figure out better models. In this case, we use Random Forest Regression model as alternative. For Regression model, we change the output from “finishposition” into “driverRacePoints”. The R^2 is pretty high (69%), yet, the new issue is that the regression does not directly provide the prediction accuracy. In this case, we need to manual calculate the accuracy. Manually, we consider drivers who have the predicted “driverRacePoints” around 18 (15, 16,17,18, and 19) as in the second place.Finally, the accuracy on predicting both 0 and 1 is 92%, but the accuracy on predicting 1 (the prediction second palce/ real second palce) is 50%. Thus, we believe this model is good enough for prediction.
 
 # COMMAND ----------
 
@@ -275,16 +275,12 @@ driverRaceDFPred= driverRaceDFPred.join(drivers.select(col("driverId"), concat(d
 
 # Creating a Binary column that says if a driver finished second or not
 driverRaceDFPred = driverRaceDFPred.withColumn("drivSecPosPred", when((driverRaceDFPred.predictions >=15) & (driverRaceDFPred.predictions <= 19),1) .otherwise(0))
+
+# Adding the real values if the driver position is second or not.
+driverRaceDFPred = driverRaceDFPred.withColumn("drivSecPos", when(driverRaceDFPred.driverRacePoints == 18,1) .otherwise(0))
+
+
 display(driverRaceDFPred)
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC Accuracy Calculation
-
-# COMMAND ----------
-
-
 
 # COMMAND ----------
 
@@ -313,9 +309,19 @@ display(driverRaceDFPred_return)
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC However, we are still unsatisfied with the result and try to figure out better models. In this case, we use Random Forest Regression model as alternative. For Regression model, we change the output from “finishposition” into “driverRacePoints”. The R^2 is pretty high (69%), yet, the new issue is that the regression does not directly provide the prediction accuracy. In this case, we need to manual calculate the accuracy. Manually, we consider drivers who have the predicted “driverRacePoints” around 18 (16,17,18, and 19) as in the second place. And the accuracy is XX. Finally, we believe this model is good enough for prediction.
+# MAGIC Prediction Power (Accuracy)
 
 # COMMAND ----------
 
 # MAGIC %md
 # MAGIC Visualization is in the Superset
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC We use Superset to show our prediction power(accuracy), the link is as below:
+# MAGIC http://ec2-3-84-157-243.compute-1.amazonaws.com:8088/r/36
+# MAGIC http://ec2-3-84-157-243.compute-1.amazonaws.com:8088/r/37
+
+# COMMAND ----------
+
