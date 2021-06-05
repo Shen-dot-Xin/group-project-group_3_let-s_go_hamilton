@@ -1,4 +1,5 @@
-# GR5069-GroupProject-Spring2021
+# QMSS GR5069 Applied Data Science for Social Scientists
+## GroupProject-Spring2021
 
 ### [Project Description](GR5069-GroupProject.pdf)
 
@@ -6,20 +7,20 @@ Term: Spring 2021
 
 + Group 3
 + Team members
-	+ Guankun Chen
 	+ Shen Xin
+	+ Guankun Chen
 	+ Yixuan Li
 	+ Pruthvi Panati
 	
 ### Contribution statement
+
+**Shen Xin**: Collaborated with Yixuan on the [data pipeline](src/data/constructor_datapipeline.py) and [feature cleaning](src/features/constructor_feature.py) for Q3 and Q4. Completed [Q3](src/models/constructor_inference.py), the constructor championship inference problemm and wrote a report on the [findings](reports/documents/Constructor_Championship_Inference.md).
 
 Guankun Chen: Collaborated with Pruthvi on the data pipeline and feature cleaning for Q1 and Q2. Completed Q2, the driver result prediction problem. 
 
 Yixuan Li: Collaborated with Shen on the data pipeline and feature cleaning for Q3 and Q4. Completed Q4, the constructor championship prediction problem. 
 
 Pruthvi Panati: Collaborated with Guankun on the data pipeline and feature cleaning for Q1 and Q2. Completed Q1, the driver result inference problem. 
-
-Shen Xin: Collaborated with Yixuan on the data pipeline and feature cleaning for Q3 and Q4. Completed Q3, the constructor championship inference problem. 
 
 
 ### Repo Map
