@@ -14,7 +14,7 @@ Term: Spring 2021
 	
 ### Contribution statement
 
-**Shen Xin**: Collaborated with Yixuan on the [data pipeline](src/data/constructor_datapipeline.py) and [feature cleaning](src/features/constructor_feature.py) for Q3 and Q4. Completed [Q3](src/models/constructor_inference.py), the constructor championship inference problemm and wrote a report on the [findings](reports/documents/Constructor_Championship_Inference.md).
+**Shen Xin**: Collaborated with Yixuan on the [data pipeline](src/data/constructor_datapipeline.py) and [feature cleaning](src/features/constructor_feature.py) for Q3 and Q4. Built [Machine Learning Model](src/models/constructor_inference.py) for Q3, the constructor championship inference problem and wrote a [report](reports/documents/Constructor_Championship_Inference.md) on the findings.
 
 Guankun Chen: Collaborated with Pruthvi on the data pipeline and feature cleaning for Q1 and Q2. Completed Q2, the driver result prediction problem. 
 
